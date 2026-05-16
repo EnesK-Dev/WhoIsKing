@@ -231,7 +231,8 @@ namespace AskAway.Hubs
 
             if (room == null) return;
 
-            var player = room.Players.FirstOrDefault(p => p.Name == playerName);
+            var player = room.Players.FirstOrDefault(p => p.ConnectionId == Context.ConnectionId)
+                ?? room.Players.FirstOrDefault(p => p.Name == playerName);
             var currentQuestion = await _context.Questions.FindAsync(room.CurrentQuestionId);
             if (player == null || currentQuestion == null) return;
 
@@ -250,7 +251,6 @@ namespace AskAway.Hubs
             }
 
             int totalPlayers = room.Players.Count;
-            int answeredPlayers = room.Players.Count(p => !string.IsNullOrEmpty(p.CurrentAnswer));
 
             // ====================================================================
             // MOD 2 (YORUM) için çift aşamalı özel kurallar
@@ -298,15 +298,22 @@ namespace AskAway.Hubs
                     // AŞAMA 1 & 2: OYUNCULAR YAZI YAZIYOR (Kral beklenmiyor)
                     // Mod 2'de hedef kişi sayısı toplam sayıdan 1 eksiktir (Kral yazmayacağı için)
                     int targetAnswers = totalPlayers - 1;
+                    int answeredPlayers = await _context.Players
+                        .Where(p => p.RoomId == room.Id && p.Id != king.Id && !string.IsNullOrEmpty(p.CurrentAnswer))
+                        .CountAsync();
+
                     await Clients.Group(code).SendAsync("UpdateAnswerCount", answeredPlayers, targetAnswers);
 
-                    if (answeredPlayers == targetAnswers)
+                    if (answeredPlayers >= targetAnswers)
                     {
                         // HERKES YAZDI! Şimdi cevapları toplayıp anonim (isimsiz) şekilde Kral'a yollayalım
-                        var anonymousAnswers = room.Players
-                            .Where(p => p.Id != king.Id && !string.IsNullOrEmpty(p.CurrentAnswer))
-                            .Select(p => p.CurrentAnswer)
-                            .OrderBy(a => Guid.NewGuid()) // Cevapları karıştır
+                        var anonymousAnswers = await _context.Players
+                            .Where(p => p.RoomId == room.Id && p.Id != king.Id && !string.IsNullOrEmpty(p.CurrentAnswer))
+                            .Select(p => p.CurrentAnswer!)
+                            .ToListAsync();
+
+                        anonymousAnswers = anonymousAnswers
+                            .OrderBy(_ => Guid.NewGuid()) // Cevapları karıştır
                             .ToList();
 
                         // Yeni komut: "KralSeçimEkranınıGöster"
@@ -322,9 +329,13 @@ namespace AskAway.Hubs
             // ====================================================================
             else
             {
+                int answeredPlayers = await _context.Players
+                    .Where(p => p.RoomId == room.Id && !string.IsNullOrEmpty(p.CurrentAnswer))
+                    .CountAsync();
+
                 await Clients.Group(code).SendAsync("UpdateAnswerCount", answeredPlayers, totalPlayers);
 
-                if (answeredPlayers == totalPlayers)
+                if (answeredPlayers >= totalPlayers)
                 {
                     string kingLetter = king.CurrentAnswer; // Kralın seçtiği harf (A, B, C...)
                     string kingAnswerText = "";

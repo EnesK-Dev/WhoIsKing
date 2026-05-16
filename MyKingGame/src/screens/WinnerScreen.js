@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Image,
   View,
@@ -18,12 +18,10 @@ const crownImage = require('../../assets/crown.png');
  * WinnerScreen - Oyunun sonunda kazananları gösterir
  * @param {Object} props - Component props
  * @param {Object} props.navigation - React Navigation prop
- * @param {Object} props.route - Navigation route
  */
-export default function WinnerScreen({ navigation, route }) {
+export default function WinnerScreen({ navigation }) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const players = useGameStore((s) => s.players);
-  const getRoundSummary = useGameStore((s) => s.getRoundSummary);
   const resetGame = useGameStore((s) => s.resetGame);
 
   // Oyuncuları skor'a göre sırala
@@ -45,14 +43,12 @@ export default function WinnerScreen({ navigation, route }) {
   const podyum2Height = podyumHeight * 0.65;
   const podyum3Height = podyumHeight * 0.45;
 
-  const handlePlayAgain = () => {
-    resetGame();
-    navigation.replace('Lobby');
-  };
-
   const handleReturnToLobby = () => {
     resetGame();
-    navigation.replace('Lobby');
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Lobby' }],
+    });
   };
 
   return (
@@ -143,12 +139,6 @@ export default function WinnerScreen({ navigation, route }) {
           {/* Aksiyon Butonları */}
           <View style={styles.buttonContainer}>
             <CustomButton
-              style={styles.playAgainButton}
-              textStyle={styles.playAgainButtonText}
-              onPress={handlePlayAgain}
-              title="YENIDEN OYNA"
-            />
-            <CustomButton
               style={styles.returnLobbyButton}
               textStyle={styles.returnLobbyButtonText}
               onPress={handleReturnToLobby}
@@ -163,6 +153,7 @@ export default function WinnerScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop:40,
     flex: 1,
     backgroundColor: '#121212',
   },
@@ -307,31 +298,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   buttonContainer: {
-    flexDirection: 'row',
-    gap: 12,
     width: '100%',
     paddingHorizontal: 5,
   },
-  playAgainButton: {
-    flex: 1,
-    backgroundColor: '#FFD700',
-    paddingVertical: 15,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 50,
-  },
-  playAgainButtonText: {
-    color: '#1A1A1D',
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
   returnLobbyButton: {
-    flex: 1,
-    backgroundColor: 'transparent',
+    width: '100%',
+    backgroundColor: '#1A1A1D',
     borderWidth: 2.5,
-    borderColor: '#FFD700',
+    borderColor: '#00F5FF',
     paddingVertical: 15,
     borderRadius: 14,
     alignItems: 'center',
@@ -339,7 +313,7 @@ const styles = StyleSheet.create({
     minHeight: 50,
   },
   returnLobbyButtonText: {
-    color: '#FFD700',
+    color: '#00F5FF',
     fontSize: 14,
     fontWeight: '800',
     letterSpacing: 1,

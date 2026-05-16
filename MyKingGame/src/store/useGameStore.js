@@ -380,6 +380,22 @@ export const useGameStore = create((set, get) => ({
 
   setGameState: (state) => set({ gameState: state }),
 
+  resetGame: () =>
+    set({
+      gameState: 'waiting',
+      currentQuestion: null,
+      lastRoundSummary: null,
+      anonymousKingChoices: null,
+      answerProgress: null,
+      selections: {},
+      selectionOrder: [],
+      isGameOverFromServer: false,
+      textWinnerPlayerId: null,
+      kingAnswer: null,
+      roundSummary: null,
+      gameResult: null,
+    }),
+
   makeSelection: (playerId, value) =>
     set((state) => ({
       selections: {

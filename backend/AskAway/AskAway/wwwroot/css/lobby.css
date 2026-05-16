@@ -287,6 +287,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 16px;
     margin-top: 16px;
     width: 100%;
@@ -316,6 +317,8 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    margin-inline: auto;
+    text-align: center;
 }
 
     .game-btn:hover:not(:disabled),
@@ -441,7 +444,10 @@ body {
 .lobby-actions {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 15px;
+    width: 100%;
 }
 
 /* Waiting Indicator */
@@ -492,6 +498,17 @@ body {
         height: auto;
         align-items: flex-start;
         padding: 16px 0;
+        background-image: url('/images/homescreen.png');
+        background-size: cover;
+        background-position: center top;
+        background-repeat: no-repeat;
+    }
+
+    .game-container.king-mode {
+        background-image: url('/images/homescreen.png');
+        background-size: cover;
+        background-position: center top;
+        background-repeat: no-repeat;
     }
 
     .screen {
@@ -522,7 +539,12 @@ body {
     }
 
     .game-btn {
-        width: 100%;
+        width: min(100%, 360px);
+    }
+
+    .lobby-actions,
+    .button-group {
+        align-items: center;
     }
 }
 /* ========================================
