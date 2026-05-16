@@ -1,17 +1,18 @@
 import React, { useEffect } from 'react';
 import {
+  Image,
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   useWindowDimensions,
   ImageBackground,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import CustomButton from '../components/common/CustomButton';
 import { useGameStore } from '../store/useGameStore';
 
 const generalBackground = require('../../assets/lobyScreen.png');
+const crownImage = require('../../assets/crown.png');
 
 /**
  * WinnerScreen - Oyunun sonunda kazananları gösterir
@@ -72,11 +73,10 @@ export default function WinnerScreen({ navigation, route }) {
           {/* Kazanan Bölümü */}
           {winner && (
             <View style={styles.winnerSection}>
-              <MaterialCommunityIcons
-                name="crown"
-                size={Math.min(screenWidth * 0.18, 90)}
-                color="#FFD700"
+              <Image
+                source={crownImage}
                 style={styles.crownIcon}
+                resizeMode="contain"
               />
               <Text style={[styles.winnerName, { fontSize: Math.min(screenWidth * 0.12, 56) }]}>
                 {winner.name}
@@ -89,13 +89,13 @@ export default function WinnerScreen({ navigation, route }) {
             {/* 2. Sırası (Sol) */}
             {secondPlace && (
               <View style={styles.podyumColumn}>
+                <Text style={[styles.podyumPlayerName, styles.podyumPlayerNameSecond]} numberOfLines={1}>
+                  {secondPlace.name}
+                </Text>
                 <View style={[styles.podyumBlock, styles.podyum2, { height: podyum2Height }]}>
                   <Text style={[styles.podyumNumber, { fontSize: screenWidth * 0.12 }]}>2</Text>
                 </View>
-                <Text style={styles.podyumPlayerName} numberOfLines={1}>
-                  {secondPlace.name}
-                </Text>
-                <Text style={styles.podyumScore}>{secondPlace.score}</Text>
+                <Text style={[styles.podyumScore, styles.podyumScoreSecond]}>{secondPlace.score}</Text>
               </View>
             )}
 
@@ -105,9 +105,6 @@ export default function WinnerScreen({ navigation, route }) {
                 <View style={[styles.podyumBlock, styles.podyum1, { height: podyum1Height }]}>
                   <Text style={[styles.podyumNumber, { fontSize: screenWidth * 0.16 }]}>1</Text>
                 </View>
-                <Text style={styles.podyumPlayerName} numberOfLines={1}>
-                  {winner.name}
-                </Text>
                 <Text style={[styles.podyumScore, styles.podyumScoreWinner]}>
                   {winner.score}
                 </Text>
@@ -117,13 +114,13 @@ export default function WinnerScreen({ navigation, route }) {
             {/* 3. Sırası (Sağ) */}
             {thirdPlace && (
               <View style={styles.podyumColumn}>
+                <Text style={[styles.podyumPlayerName, styles.podyumPlayerNameThird]} numberOfLines={1}>
+                  {thirdPlace.name}
+                </Text>
                 <View style={[styles.podyumBlock, styles.podyum3, { height: podyum3Height }]}>
                   <Text style={[styles.podyumNumber, { fontSize: screenWidth * 0.12 }]}>3</Text>
                 </View>
-                <Text style={styles.podyumPlayerName} numberOfLines={1}>
-                  {thirdPlace.name}
-                </Text>
-                <Text style={styles.podyumScore}>{thirdPlace.score}</Text>
+                <Text style={[styles.podyumScore, styles.podyumScoreThird]}>{thirdPlace.score}</Text>
               </View>
             )}
           </View>
@@ -145,20 +142,18 @@ export default function WinnerScreen({ navigation, route }) {
 
           {/* Aksiyon Butonları */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
+            <CustomButton
               style={styles.playAgainButton}
+              textStyle={styles.playAgainButtonText}
               onPress={handlePlayAgain}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.playAgainButtonText}>YENIDEN OYNA</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+              title="YENIDEN OYNA"
+            />
+            <CustomButton
               style={styles.returnLobbyButton}
+              textStyle={styles.returnLobbyButtonText}
               onPress={handleReturnToLobby}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.returnLobbyButtonText}>LOBİYE DÖN</Text>
-            </TouchableOpacity>
+              title="LOBİYE DÖN"
+            />
           </View>
         </ScrollView>
       </View>
@@ -173,7 +168,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(18, 18, 18, 0.85)',
+    backgroundColor: 'rgba(18, 18, 18, 0.29)',
   },
   scrollContainer: {
     flex: 1,
@@ -194,10 +189,12 @@ const styles = StyleSheet.create({
   },
   winnerSection: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 12,
   },
   crownIcon: {
     marginBottom: 10,
+    width: 110,
+    height: 110,
   },
   winnerName: {
     fontWeight: '900',
@@ -211,7 +208,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 12,
     marginBottom: 35,
-    marginTop: 10,
+    marginTop: 0,
   },
   podyumColumn: {
     flex: 1,
@@ -230,10 +227,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFD700',
   },
   podyum2: {
-    backgroundColor: '#C49A2B',
+    backgroundColor: '#BF00FF ',
   },
   podyum3: {
-    backgroundColor: '#B8860B',
+    backgroundColor: '#00F5FF ',
   },
   podyumNumber: {
     color: '#1A1A1D',
@@ -241,16 +238,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   podyumPlayerName: {
-    color: '#FFD700',
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 3,
   },
+  podyumPlayerNameSecond: {
+    color: '#BF00FF',
+  },
+  podyumPlayerNameThird: {
+    color: '#00F5FF',
+  },
   podyumScore: {
-    color: '#FFD700',
     fontSize: 13,
     fontWeight: '700',
+  },
+  podyumScoreSecond: {
+    color: '#BF00FF',
+  },
+  podyumScoreThird: {
+    color: '#00F5FF',
   },
   podyumScoreWinner: {
     fontSize: 14,
@@ -264,30 +271,40 @@ const styles = StyleSheet.create({
   listRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#C49A2B',
-    paddingVertical: 11,
-    paddingHorizontal: 15,
-    marginBottom: 9,
-    borderRadius: 12,
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#00F5FF',
+    backgroundColor: '#111215',
+    borderRadius: 10,
     minHeight: 45,
   },
   listPosition: {
-    color: '#1A1A1D',
-    fontSize: 15,
-    fontWeight: '700',
-    width: 35,
+    color: '#FFFFFF',
+    fontFamily: 'KKowe',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 1,
+    width: 40,
   },
   listPlayerName: {
     flex: 1,
-    color: '#1A1A1D',
-    fontSize: 15,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: 'KKowe',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 1,
     marginHorizontal: 10,
   },
   listScore: {
-    color: '#1A1A1D',
-    fontSize: 14,
-    fontWeight: '700',
+    color: '#D3F9FF',
+    fontFamily: 'KKowe',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
   buttonContainer: {
     flexDirection: 'row',

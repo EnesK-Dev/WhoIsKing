@@ -1,6 +1,6 @@
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 
-export default function CustomButton({ title, onPress,style, disabled = false }) {
+export default function CustomButton({ title, onPress, style, textStyle, disabled = false }) {
   return (
     <TouchableOpacity
       style={[styles.button, disabled && styles.buttonDisabled, style]}
@@ -8,7 +8,7 @@ export default function CustomButton({ title, onPress,style, disabled = false })
       activeOpacity={0.7}
       disabled={disabled}
     >
-      <Text style={styles.label}>{title}</Text>
+      <Text style={[styles.label, textStyle]}>{title}</Text>
     </TouchableOpacity>
   );
 }
