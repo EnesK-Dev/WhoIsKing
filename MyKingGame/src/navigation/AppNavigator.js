@@ -26,11 +26,11 @@ export default function AppNavigator() {
         name="Scoreboard"
         component={ScoreboardScreen}
         options={{ title: 'Skor Tablosu' }}
+      />
       <Stack.Screen
         name="Winner"
         component={WinnerScreen}
         options={{ title: 'Kazanan' }}
-      />
       />
     </Stack.Navigator>
   );
