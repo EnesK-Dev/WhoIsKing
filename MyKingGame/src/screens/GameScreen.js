@@ -197,7 +197,7 @@ export default function GameScreen({ navigation }) {
     }
     return (
       <Text style={styles.waitingText}>
-        {isCurrentPlayerKing ? 'Doğru kabul ettiğin şıkkı seç (A–E sunucuya gider).' : 'Kralın seçeceği şıkkı tahmin et.'}
+        {isCurrentPlayerKing ? 'Doğru kabul ettiğin şıkkı seç .' : 'Kralın seçeceği şıkkı tahmin et.'}
       </Text>
     );
   };

@@ -4,6 +4,7 @@ import HomeScreen from '../screens/HomeScreen';
 import JoinRoomScreen from '../screens/JoinRoomScreen';
 import LobbyScreen from '../screens/LobbyScreen';
 import ScoreboardScreen from '../screens/ScoreboardScreen';
+import WinnerScreen from '../screens/WinnerScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,11 @@ export default function AppNavigator() {
         name="Scoreboard"
         component={ScoreboardScreen}
         options={{ title: 'Skor Tablosu' }}
+      <Stack.Screen
+        name="Winner"
+        component={WinnerScreen}
+        options={{ title: 'Kazanan' }}
+      />
       />
     </Stack.Navigator>
   );

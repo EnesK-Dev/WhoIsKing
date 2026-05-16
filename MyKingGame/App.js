@@ -9,6 +9,8 @@ import { useGameStore } from './src/store/useGameStore';
 
 let isGlobalFontApplied = false;
 
+
+
 export default function App() {
   const initializeSignalR = useGameStore((s) => s.initializeSignalR);
   const fetchQuestionsCatalog = useGameStore((s) => s.fetchQuestionsCatalog);

@@ -1,5 +1,6 @@
 ﻿
 const screens = {
+    loading: document.getElementById('loadingScreen'),
     welcome: document.getElementById('welcomeScreen'),
     join: document.getElementById('joinScreen'),
     lobby: document.getElementById('lobbyScreen'),
@@ -31,7 +32,6 @@ const lobbyElements = {
 };
 
 const gameElements = {
-    kingName: document.getElementById('currentKingName'),
     questionText: document.getElementById('questionText'),
     timerProgress: document.getElementById('timerProgress'),
     timerText: document.getElementById('timerText'),
@@ -42,6 +42,122 @@ const gameElements = {
 };
 
 let isHost = false;
+let myPlayerName = '';
+let currentKingName = '';
+const CROWN_IMG = '/images/crown.png';
+
+function getMyPlayerName() {
+    const fromInput = (inputs.playerName?.value || inputs.joinPlayerName?.value || '').trim();
+    const stored = (myPlayerName || sessionStorage.getItem('myPlayerName') || fromInput).trim();
+    return stored;
+}
+
+function namesMatch(a, b) {
+    const left = (a || '').trim().toLocaleLowerCase('tr-TR');
+    const right = (b || '').trim().toLocaleLowerCase('tr-TR');
+    return left.length > 0 && left === right;
+}
+
+function escapeHtml(text) {
+    const el = document.createElement('span');
+    el.textContent = text ?? '';
+    return el.innerHTML;
+}
+
+function getQuestionTypeValue(data) {
+    const raw = data?.questionType ?? data?.QuestionType ?? 0;
+    if (typeof raw === 'string') {
+        const map = {
+            multiplechoice: 0,
+            playerselection: 1,
+            playeroptions: 2,
+            text_input: 2,
+        };
+        return map[raw.toLowerCase()] ?? 0;
+    }
+    return Number(raw);
+}
+
+function applyGameTheme(isKing) {
+    const gameCard = document.getElementById('gameCard');
+    const questionCard = document.getElementById('questionCard');
+    if (gameCard) gameCard.classList.toggle('theme-king', !!isKing);
+    if (questionCard) questionCard.classList.toggle('theme-king', !!isKing);
+}
+
+function showLoadingOverlay(show) {
+    const loadingEl = screens.loading;
+    if (!loadingEl) return;
+    if (show) {
+        loadingEl.classList.add('active');
+    } else {
+        loadingEl.classList.remove('active');
+    }
+}
+
+function applyPlayerBackground(isKing) {
+    const container = document.querySelector('.game-container');
+    if (!container) return;
+
+    if (isKing) {
+        // preload king background, show loading overlay while loading
+        showLoadingOverlay(true);
+        const bgPath = '/images/kingBackGrounWeb.png?v=' + Date.now();
+        const img = new Image();
+        img.onload = () => {
+            container.classList.add('king-mode');
+            container.style.backgroundImage = `url('${bgPath}')`;
+            showLoadingOverlay(false);
+        };
+        img.onerror = () => {
+            console.warn('kingBackground.png failed to load, falling back to homeScreenweb.png');
+            container.classList.add('king-mode');
+            container.style.backgroundImage = "url('/images/homeScreenweb.png')";
+            showLoadingOverlay(false);
+        };
+        img.src = bgPath;
+    } else {
+        container.classList.remove('king-mode');
+        container.style.backgroundImage = "url('/images/homeScreenweb.png')";
+    }
+}
+
+function resolveIsKing(data, kingName) {
+    const fromServer = data?.isYouKing ?? data?.IsYouKing;
+    if (typeof fromServer === 'boolean') {
+        return fromServer;
+    }
+    return namesMatch(kingName, getMyPlayerName());
+}
+
+function renderKingBox(kingName, isKing) {
+    const kingContainer = document.getElementById('kingBoxContainer');
+    const kingBoxView = document.getElementById('kingBoxView');
+    const kingSelfView = document.getElementById('kingSelfBoxView');
+    const kingNameDisplay = document.getElementById('kingNameDisplay');
+    const roleHint = document.getElementById('gameRoleHint');
+
+    if (!kingBoxView || !kingSelfView) return;
+
+    if (kingContainer) {
+        kingContainer.style.display = 'block';
+    }
+
+    const name = (kingName || '').trim();
+
+    if (isKing) {
+        kingBoxView.style.display = 'none';
+        kingSelfView.style.display = 'block';
+        if (roleHint) roleHint.textContent = 'Doğru kabul ettiğin şıkkı seç.';
+    } else {
+        kingSelfView.style.display = 'none';
+        kingBoxView.style.display = 'block';
+        if (kingNameDisplay) {
+            kingNameDisplay.textContent = name || '—';
+        }
+        if (roleHint) roleHint.textContent = 'Kralın seçeceği şıkkı tahmin et.';
+    }
+}
 
 // --- 2. SIGNALR BAĞLANTISI ---
 const connection = new signalR.HubConnectionBuilder()
@@ -82,37 +198,41 @@ connection.on("Error", (message) => {
 // 1. OYUN BAŞLADIĞINDA (KRAL KONTROLÜ DÜZELTİLDİ)
 // =======================================================
 connection.on("GameStarted", (data) => {
-    console.log("GameStarted İçin Gelen Veri:", data);
+    console.log("GameStarted:", data);
 
-    // 🌟 BÜYÜK DÜZELTME BURADA: Sadece gizleme, DOM'dan (HTML'den) tamamen SİL!
     const oldKingContainer = document.getElementById('kingSelectionContainer');
     if (oldKingContainer) {
-        oldKingContainer.remove(); // Kökten yok ediyoruz!
+        oldKingContainer.remove();
     }
 
-    if (gameElements.kingName) gameElements.kingName.textContent = data.kingName;
-    if (gameElements.questionText) gameElements.questionText.innerHTML = data.questionText;
+    const kingName = String(data.kingName ?? data.KingName ?? '').trim();
+    const myName = getMyPlayerName();
+    const isKing = resolveIsKing(data, kingName);
+    const questionType = getQuestionTypeValue(data);
+    const isTextQuestion = questionType === 2;
 
-    // JavaScript artık eski kral kutusu silindiği için GERÇEK A-B-C kutusunu bulacak
+    currentKingName = kingName;
+
+    if (gameElements.questionText) {
+        gameElements.questionText.textContent = data.questionText ?? data.QuestionText ?? '';
+    }
+
+    applyGameTheme(isKing);
+    renderKingBox(kingName, isKing);
+
     const optionsContainer = document.querySelector('.options-container');
     const textInputContainer = document.getElementById('textInputContainer');
 
-    // 🌟 1. BÜYÜK DÜZELTME: BEN KRAL MIYIM? 
-    // İsmi kesin olarak Input'ların içinden (.value) alıyoruz.
-    let myName = document.getElementById('playerName').value.trim();
-    if (myName === "") myName = document.getElementById('joinPlayerName').value.trim();
+    console.log('[GameStarted] kral:', kingName, '| ben:', myName, '| kral mıyım:', isKing);
 
-    // Gerçek oyuncu adıyla, sunucudan gelen Kral adı aynı mı?
-    const isKing = (data.kingName === myName);
-
-    if (data.questionType == 2) {
+    if (isTextQuestion) {
         if (optionsContainer) optionsContainer.style.display = 'none';
 
         if (isKing) {
             // KRALSAM KUTUYU GİZLE!
             if (textInputContainer) textInputContainer.style.display = 'none';
             if (gameElements.waitingState) {
-                gameElements.waitingState.innerHTML = "<p>👑 Oyuncuların komik cevaplar yazması bekleniyor...</p>";
+                gameElements.waitingState.innerHTML = "<p>Oyuncuların komik cevaplar yazması bekleniyor...</p>";
                 gameElements.waitingState.style.display = 'block';
             }
         } else {
@@ -143,6 +263,8 @@ connection.on("GameStarted", (data) => {
     }
 
     showScreen('game');
+    // apply background after switching screens so loading overlay can display over the game screen
+    applyPlayerBackground(isKing);
 });
 
 // =======================================================
@@ -156,17 +278,14 @@ if (submitOpenEndedBtn) {
 
         if (answer !== "") {
 
-            // 🌟 2. BÜYÜK DÜZELTME: textContent kullanarak gizli div'den yazıyı okuyoruz!
+            // textContent ile gizli div'den yazıyı oku
             let exactRoomCode = document.getElementById('displayRoomCode').textContent.trim();
             // Eğer lobide değil de join ekranındaysa inputtan almayı deneriz:
             if (exactRoomCode === "" || exactRoomCode === "----") {
                 exactRoomCode = document.getElementById('roomCode').value.trim();
             }
 
-            let exactPlayerName = document.getElementById('playerName').value.trim();
-            if (exactPlayerName === "") {
-                exactPlayerName = document.getElementById('joinPlayerName').value.trim();
-            }
+            const exactPlayerName = getMyPlayerName();
 
             console.log("SON KONTROL -> Oda:", exactRoomCode, "Oyuncu:", exactPlayerName, "Cevap:", answer);
 
@@ -202,11 +321,16 @@ connection.on("ShowResults", (data) => {
 
     const resultsTitle = document.getElementById('resultsTitle');
     const kingChoice = document.getElementById('kingChoice');
+    const resultsKingName = document.getElementById('resultsKingName');
     const scoreboardList = document.getElementById('scoreboardList');
 
     // 1. Sorun Çözümü: Kralın Seçimindeki çift harfi sildik, sadece metni gösteriyoruz
     if (kingChoice) {
-        kingChoice.innerHTML = `👑 Kralın Seçimi: <strong>${data.correctAnswerContent}</strong>`;
+        kingChoice.textContent = data.correctAnswerContent ?? '';
+    }
+    // Show the king's name (use data.kingName or fallback to currentKingName)
+    if (resultsKingName) {
+        resultsKingName.textContent = (data.kingName ?? data.KingName ?? currentKingName ?? '—');
     }
 
     if (scoreboardList) {
@@ -215,17 +339,17 @@ connection.on("ShowResults", (data) => {
             const li = document.createElement('li');
             li.className = `score-item ${p.isCorrect ? 'correct' : ''} ${p.isKing ? 'king' : ''}`;
 
-            let icon = p.isKing ? "👑" : (p.isCorrect ? "✅" : "❌");
+            let icon = p.isKing ? "" : (p.isCorrect ? "+" : "—");
             let pointsText = p.isKing ? "" : (p.isCorrect ? "+5" : "0");
 
             // 2. Sorun Çözümü: Artık C#'tan gelen .answerText'i kullanıyoruz (Örn: Tutku Seçti)
-            let playerVoteText = p.isKing ? "Karar Verici" : `(${p.answerText} Seçti)`;
+            let playerVoteText = p.isKing ? "Kral" : `(${p.answerText} Seçti)`;
 
             // HTML Şablonu (Ters tırnaklara dikkat!)
             li.innerHTML = `
                 <div class="score-left">
                     <span class="score-icon">${icon}</span>
-                    <span class="player-name">${p.playerName} <small style="color: #888; margin-left: 5px;">${playerVoteText}</small></span>
+                    <span class="player-name">${p.playerName} <small style="color: #A8DCE2; margin-left: 5px;">${playerVoteText}</small></span>
                 </div>
                 <div class="score-right">
                     <span class="score-points">${pointsText}</span>
@@ -238,7 +362,7 @@ connection.on("ShowResults", (data) => {
 
     if (resultsTitle) {
         if (data.isGameOver) {
-            resultsTitle.innerHTML = "🎉 OYUN BİTTİ!";
+            resultsTitle.innerHTML = "OYUN BİTTİ!";
 
             if (isHost) {
                 buttons.nextRound.style.display = 'none';
@@ -271,6 +395,8 @@ if (buttons.createRoom) {
     buttons.createRoom.addEventListener('click', () => {
         const playerName = inputs.playerName.value.trim();
         if (!playerName) return alert('Lütfen adınızı girin!');
+        myPlayerName = playerName;
+        sessionStorage.setItem('myPlayerName', playerName);
         isHost = true;
         connection.invoke("CreateRoom", playerName).catch(err => console.error(err));
     });
@@ -290,6 +416,8 @@ if (buttons.confirmJoin) {
         const playerName = inputs.joinPlayerName.value.trim();
         const roomCode = inputs.roomCode.value.trim().toUpperCase();
         if (!playerName || !roomCode || roomCode.length !== 4) return alert('Eksik bilgi!');
+        myPlayerName = playerName;
+        sessionStorage.setItem('myPlayerName', playerName);
         isHost = false;
         if (buttons.startGame) buttons.startGame.style.display = 'none';
         if (lobbyElements.displayRoomCode) lobbyElements.displayRoomCode.textContent = roomCode;
@@ -299,7 +427,50 @@ if (buttons.confirmJoin) {
 }
 
 if (buttons.backToWelcome) {
-    buttons.backToWelcome.addEventListener('click', () => showScreen('welcome'));
+    buttons.backToWelcome.addEventListener('click', () => resetToWelcome());
+}
+
+if (buttons.leaveLobby) {
+    buttons.leaveLobby.addEventListener('click', () => resetToWelcome());
+}
+
+function resetToWelcome() {
+    isHost = false;
+    myPlayerName = '';
+    currentKingName = '';
+    sessionStorage.removeItem('myPlayerName');
+
+    if (lobbyElements.displayRoomCode) {
+        lobbyElements.displayRoomCode.textContent = '----';
+    }
+    if (lobbyElements.playersList) {
+        lobbyElements.playersList.innerHTML = '';
+    }
+    if (buttons.startGame) {
+        buttons.startGame.style.display = 'none';
+    }
+    if (buttons.nextRound) {
+        buttons.nextRound.style.display = 'none';
+    }
+    if (buttons.playAgain) {
+        buttons.playAgain.style.display = 'none';
+    }
+    if (gameElements.waitingState) {
+        gameElements.waitingState.style.display = 'none';
+    }
+
+    const kingSelection = document.getElementById('kingSelectionContainer');
+    if (kingSelection) {
+        kingSelection.remove();
+    }
+
+    applyGameTheme(false);
+    renderKingBox('', false);
+    applyPlayerBackground(false);
+    const roleHint = document.getElementById('gameRoleHint');
+    if (roleHint) roleHint.textContent = '';
+
+    showScreen('welcome');
 }
 
 function getActiveRoomCode() {
@@ -341,7 +512,7 @@ gameElements.optionButtons.forEach(btn => {
 
         const selectedOption = btn.dataset.option;
         const roomCode = getActiveRoomCode();
-        const playerName = inputs.playerName.value.trim() || inputs.joinPlayerName.value.trim();
+        const playerName = getMyPlayerName();
 
         connection.invoke("SubmitAnswer", roomCode, playerName, selectedOption).catch(err => console.error(err));
     });
@@ -360,10 +531,20 @@ function showScreen(screenName) {
     }
 }
 
+function showWelcomeScreen() {
+    showScreen('welcome');
+}
+
+if (document.readyState === 'complete') {
+    showWelcomeScreen();
+} else {
+    window.addEventListener('load', showWelcomeScreen, { once: true });
+}
+
 function addPlayerToList(playerName, isCurrentHost = false) {
     if (lobbyElements.playersList) {
         const li = document.createElement('li');
-        li.textContent = playerName + (isCurrentHost ? ' 👑 (Host)' : '');
+        li.textContent = playerName + (isCurrentHost ? ' (Host)' : '');
         lobbyElements.playersList.appendChild(li);
     }
 }
@@ -401,18 +582,14 @@ connection.on("ShowKingSelection", (anonymousAnswers) => {
     kingContainer.innerHTML = '';
     kingContainer.style.display = 'flex';
 
-    // 🌟 DÜZELTME: Kral ben miyim kontrolünü GÜVENLİ yoldan yapıyoruz!
-    let exactPlayerName = document.getElementById('playerName').value.trim();
-    if (exactPlayerName === "") {
-        exactPlayerName = document.getElementById('joinPlayerName').value.trim();
-    }
-
-    const currentKing = document.getElementById('currentKingName').textContent.trim();
-    const amIKing = (currentKing === exactPlayerName);
+    const exactPlayerName = getMyPlayerName();
+    const amIKing = namesMatch(currentKingName, exactPlayerName);
+    applyGameTheme(amIKing);
+    renderKingBox(currentKingName, amIKing);
 
     // Başlık daha önce eklenmediyse ekle
     if (gameElements.questionText && !gameElements.questionText.innerHTML.includes("Karar Vakti")) {
-        gameElements.questionText.innerHTML += "<br><span style='font-size: 1.2rem; color: #ffd700;'>👑 Karar Vakti! En komiğini seç!</span>";
+        gameElements.questionText.innerHTML += "<br><span class='highlight-player' style='font-size: 1.2rem;'>Karar vakti! En komiğini seç!</span>";
     }
 
     anonymousAnswers.forEach(answer => {
@@ -421,7 +598,7 @@ connection.on("ShowKingSelection", (anonymousAnswers) => {
         btn.innerHTML = `<span class="option-text">${answer}</span>`;
 
         if (amIKing) {
-            // 👑 EĞER KRALSAM: KİLİTLER AÇIK!
+            // Kral isem kilitler açık
             btn.disabled = false;
             btn.onclick = () => {
                 // Oda kodunu da güvenli çekiyoruz
@@ -443,7 +620,7 @@ connection.on("ShowKingSelection", (anonymousAnswers) => {
                 kingContainer.querySelectorAll('button').forEach(b => b.disabled = true);
             };
         } else {
-            // 👤 NORMAL OYUNCUYSAM: Butonlar kilitli kalır, sadece izlerim
+            // Normal oyuncuysam butonlar kilitli kalır
             btn.disabled = true;
             btn.style.cursor = 'not-allowed';
             btn.style.opacity = '0.8';

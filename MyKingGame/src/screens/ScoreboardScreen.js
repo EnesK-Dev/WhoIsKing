@@ -27,7 +27,7 @@ export default function ScoreboardScreen({ navigation }) {
     if (before.gameState === 'game_over') {
       await nextRound();
       setGameState('waiting');
-      navigation.replace('Lobby');
+      navigation.replace('Winner');
       return;
     }
     await nextRound();

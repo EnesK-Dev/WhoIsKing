@@ -35,8 +35,9 @@ class SignalRService {
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl(getSignalRHubUrl(), {
         headers: { ...getNgrokBypassHeaders() },
-        skipNegotiation: true,
-        transport: signalR.HttpTransportType.WebSockets,
+        transport:
+          signalR.HttpTransportType.WebSockets |
+          signalR.HttpTransportType.LongPolling,
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000])
       .configureLogging(signalR.LogLevel.Information)
@@ -74,7 +75,7 @@ class SignalRService {
     this.startPromise = connection
       .start()
       .then(() => {
-        console.log('[SignalR] Connected.');
+        console.log('[SignalR] Connected.', getSignalRHubUrl());
         this.lifecycleHandlers.onConnected?.();
         return connection;
       })

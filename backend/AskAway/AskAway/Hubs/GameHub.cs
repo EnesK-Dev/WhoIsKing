@@ -63,7 +63,7 @@ namespace AskAway.Hubs
                 return;
             }
 
-            // 🌟 .Include(r => r.Players) ekleyerek oyuncuları da beraberinde çekiyoruz
+            // .Include(r => r.Players) ile oyuncuları da çek
             var room = await _context.Rooms
                 .Include(r => r.Players)
                 .FirstOrDefaultAsync(r => r.RoomCode == code);
@@ -201,15 +201,19 @@ namespace AskAway.Hubs
                 finalOptions = QuestionOptions.ParseStoredOptions(question.Options);
             }
 
-            var gameData = new
+            foreach (var p in room.Players)
             {
-                kingName = king.Name,
-                questionText = question.Text,
-                options = finalOptions, // Hazırladığımız dinamik şıklar
-                questionType = question.QuestionType // Frontend'in (JS) hangi modda olduğumuzu bilmesi için şart
-            };
+                var gameData = new
+                {
+                    kingName = king.Name,
+                    isYouKing = p.Id == king.Id,
+                    questionText = question.Text,
+                    options = finalOptions,
+                    questionType = question.QuestionType
+                };
 
-            await Clients.Group(code).SendAsync("GameStarted", gameData);
+                await Clients.Client(p.ConnectionId).SendAsync("GameStarted", gameData);
+            }
         }
         // 4. CEVAP GÖNDERME METODU
         public async Task SubmitAnswer(string roomCode, string playerName, string selectedOption)
@@ -249,7 +253,7 @@ namespace AskAway.Hubs
             int answeredPlayers = room.Players.Count(p => !string.IsNullOrEmpty(p.CurrentAnswer));
 
             // ====================================================================
-            // 🌟🌟 MOD 2 (YORUM) İÇİN ÇİFT AŞAMALI ÖZEL KURALLAR 🌟🌟
+            // MOD 2 (YORUM) için çift aşamalı özel kurallar
             // ====================================================================
             if (isMod2)
             {
@@ -302,7 +306,7 @@ namespace AskAway.Hubs
                         var anonymousAnswers = room.Players
                             .Where(p => p.Id != king.Id && !string.IsNullOrEmpty(p.CurrentAnswer))
                             .Select(p => p.CurrentAnswer)
-                            .OrderBy(a => Guid.NewGuid()) // 🎲 Sırrını bozmamak için cevapları karıştırıyoruz
+                            .OrderBy(a => Guid.NewGuid()) // Cevapları karıştır
                             .ToList();
 
                         // Yeni komut: "KralSeçimEkranınıGöster"
@@ -311,10 +315,10 @@ namespace AskAway.Hubs
                 }
             }
             // ====================================================================
-            // 🌟🌟 MOD 0 VE 1 İÇİN KLASİK KURALLAR (Eski kodun aynısı) 🌟🌟
+            // MOD 0 ve 1 için klasik kurallar (eski kod)
             // ====================================================================
             // ====================================================================
-            // 🌟🌟 MOD 0 VE 1 İÇİN KLASİK KURALLAR (GÜNCELLENDİ) 🌟🌟
+            // MOD 0 ve 1 için klasik kurallar (güncellendi)
             // ====================================================================
             else
             {
@@ -325,7 +329,7 @@ namespace AskAway.Hubs
                     string kingLetter = king.CurrentAnswer; // Kralın seçtiği harf (A, B, C...)
                     string kingAnswerText = "";
 
-                    // 🌟 1. KRALIN CEVABINI ÇÖZÜMLE 🌟
+                    // 1. Kralın cevabını çözümle
                     if (currentQuestion.QuestionType == QuestionType.PlayerSelection)
                     {
                         var dynamicOptions = room.Players.Where(p => p.Name != king.Name).Select(p => p.Name).ToList();
@@ -356,7 +360,7 @@ namespace AskAway.Hubs
                         p.Score += (5 + speedBonus);
                     }
 
-                    // 🌟 2. OYUNCULARIN CEVAPLARINI ÇÖZÜMLE 🌟
+                    // 2. Oyuncuların cevaplarını çözümle
                     var roundResults = new List<object>();
                     foreach (var p in room.Players)
                     {

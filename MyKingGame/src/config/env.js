@@ -6,7 +6,13 @@ const DEFAULT_API_BASE = 'http://localhost:5274';
 
 export function getApiBaseUrl() {
   const raw = process.env.EXPO_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE;
-  return String(raw).replace(/\/+$/, '');
+  const url = String(raw).replace(/\/+$/, '');
+  if (__DEV__ && url.includes('localhost')) {
+    console.warn(
+      '[env] EXPO_PUBLIC_API_BASE_URL localhost — fiziksel telefonda çalışmaz. .env içine ngrok veya PC IP yazın.'
+    );
+  }
+  return url;
 }
 
 /** Ücretsiz ngrok: ara yüz uyarısı bazı istekleri bozabiliyor; yalnızca ngrok hostunda eklenir. */

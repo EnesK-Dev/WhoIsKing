@@ -1,104 +1,138 @@
 ﻿@{
-    ViewData["Title"] = "Ask Away - Party Game";
+    ViewData["Title"] = "Kral Kim - Party Game";
     Layout = null;
 }
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"]</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/lobby.css">
 </head>
 <body>
     <div class="game-container">
         <div class="background-pattern"></div>
 
-        <div id="welcomeScreen" class="screen active">
-            <div class="content-card">
-                <h1 class="game-title">
-                    <span class="title-word">Ask</span>
-                    <span class="title-word">Away!</span>
-                </h1>
+        <div id="loadingScreen" class="screen loading-screen active">
+            <div class="loading-content">
+                <img src="/images/graffiti.gif" alt="Yükleniyor" class="graffiti-gif loading-gif" width="120" height="120" />
+                <p class="loading-text">Yükleniyor...</p>
+            </div>
+        </div>
+
+        <div id="welcomeScreen" class="screen">
+            <div class="content-card home-card">
+                <div class="home-header">
+                    <h1 class="home-title">Kral Kim</h1>
+                </div>
+                <img src="/images/graffiti.gif" alt="" class="graffiti-gif" width="100" height="100" />
                 <div class="input-group-custom">
-                    <input type="text" id="playerName" class="game-input" placeholder="Enter Your Name" maxlength="20">
+                    <input type="text" id="playerName" class="game-input" placeholder="İsminiz" maxlength="20" autocomplete="nickname">
                 </div>
                 <div class="button-group">
-                    <button id="createRoomBtn" class="game-btn btn-primary-game">🎮 Create Room</button>
-                    <button id="joinRoomBtn" class="game-btn btn-secondary-game">🚪 Join Room</button>
+                    <button type="button" id="createRoomBtn" class="game-btn">Oda Kur</button>
+                    <button type="button" id="joinRoomBtn" class="game-btn">Odaya Katıl</button>
                 </div>
             </div>
         </div>
 
         <div id="joinScreen" class="screen">
             <div class="content-card">
-                <h2 class="screen-title">Join the Fun!</h2>
+                <h2 class="screen-title">Odaya Katıl</h2>
                 <div class="input-group-custom">
-                    <input type="text" id="joinPlayerName" class="game-input" placeholder="Enter Your Name">
+                    <input type="text" id="joinPlayerName" class="game-input" placeholder="İsminiz" maxlength="20" autocomplete="nickname">
                 </div>
                 <div class="input-group-custom">
-                    <input type="text" id="roomCode" class="game-input room-code-input" placeholder="4-Digit Code" maxlength="4">
+                    <input type="text" id="roomCode" class="game-input room-code-input" placeholder="4 karakter oda kodu" maxlength="4" inputmode="text" autocomplete="off">
                 </div>
                 <div class="button-group">
-                    <button id="confirmJoinBtn" class="game-btn btn-primary-game">✓ Confirm</button>
-                    <button id="backToWelcomeBtn" class="game-btn btn-back">← Back</button>
+                    <button type="button" id="confirmJoinBtn" class="game-btn">Katıl</button>
+                    <button type="button" id="backToWelcomeBtn" class="game-btn game-btn-muted">Geri</button>
                 </div>
             </div>
         </div>
 
         <div id="lobbyScreen" class="screen">
             <div class="content-card lobby-card">
+                <p class="room-code-label">ODA KODU:</p>
                 <div class="room-code-display">
                     <span id="displayRoomCode" class="room-code-value">----</span>
                 </div>
+                <h3 class="section-title">Oyuncular</h3>
                 <ul id="playersList" class="players-list"></ul>
                 <div class="lobby-actions">
-                    <button id="startGameBtn" class="game-btn btn-start" style="display: none;">🎯 Start Game</button>
-                    <button id="leaveLobbyBtn" class="game-btn btn-leave">🚪 Leave</button>
+                    <button type="button" id="startGameBtn" class="game-btn game-btn-accent" style="display: none;">Oyunu Başlat</button>
+                    <button type="button" id="leaveLobbyBtn" class="game-btn game-btn-danger">Ayrıl</button>
                 </div>
             </div>
         </div>
 
         <div id="gameScreen" class="screen">
-            <div class="content-card game-card">
-                <div class="king-indicator">👑 <span id="currentKingName">...</span></div>
-                <div class="timer-container"><div id="timerProgress" class="timer-progress"></div></div>
-                <h2 id="questionText" class="question-text">Soru Yükleniyor...</h2>
-
-                <div class="options-container">
-                    <button class="option-btn" data-option="A"><span class="option-text"></span></button>
-                    <button class="option-btn" data-option="B"><span class="option-text"></span></button>
-                    <button class="option-btn" data-option="C"><span class="option-text"></span></button>
-                    <button class="option-btn" data-option="D"><span class="option-text"></span></button>
-                    <button class="option-btn" data-option="E"><span class="option-text"></span></button>
+            <div class="content-card game-card" id="gameCard">
+                <img src="/images/graffiti.gif" alt="" class="graffiti-gif game-graffiti" width="80" height="80" />
+                <div class="timer-container">
+                    <div class="timer-bar">
+                        <div id="timerProgress" class="timer-progress"></div>
+                    </div>
                 </div>
-
-                <div id="textInputContainer" style="display: none; text-align: center; margin-top: 20px;">
-                    <input type="text" id="openEndedAnswer" class="game-input" placeholder="Cevabını buraya yaz..." maxlength="60">
-                    <button id="submitOpenEndedBtn" class="game-btn btn-primary-game" style="margin-top: 12px;">
-                        <span class="btn-icon">📤</span>
-                        Gönder
-                    </button>
+                <div class="question-card" id="questionCard">
+                    <div id="kingBoxContainer" class="king-box-container">
+                        <div id="kingBoxView" class="king-box">
+                            <div class="king-box-body">
+                                <div class="king-box-text">
+                                    <span class="king-box-caption">Bu turun kralı:</span>
+                                    <span id="kingNameDisplay" class="king-box-value">—</span>
+                                </div>
+                                <img src="/images/crown.png" alt="Taç" class="king-box-crown" />
+                            </div>
+                        </div>
+                        <div id="kingSelfBoxView" class="king-self-box" style="display: none;">
+                            <div class="king-self-body">
+                                <span class="king-self-text">KRAL SENSİN</span>
+                                <img src="/images/crown.png" alt="Taç" class="king-box-crown king-self-crown" />
+                            </div>
+                        </div>
+                    </div>
+                    <p id="gameRoleHint" class="game-role-hint"></p>
+                    <h2 id="questionText" class="question-text">Soru yükleniyor…</h2>
+                    <div class="options-container">
+                        <button type="button" class="option-btn" data-option="A"><span class="option-text"></span></button>
+                        <button type="button" class="option-btn" data-option="B"><span class="option-text"></span></button>
+                        <button type="button" class="option-btn" data-option="C"><span class="option-text"></span></button>
+                        <button type="button" class="option-btn" data-option="D"><span class="option-text"></span></button>
+                        <button type="button" class="option-btn" data-option="E"><span class="option-text"></span></button>
+                    </div>
+                    <div id="textInputContainer" class="open-ended-block" style="display: none;">
+                        <input type="text" id="openEndedAnswer" class="game-input" placeholder="Cevabını buraya yaz…" maxlength="60">
+                        <button type="button" id="submitOpenEndedBtn" class="game-btn">Gönder</button>
+                    </div>
                 </div>
-
                 <div id="waitingForAnswers" class="waiting-state" style="display: none;">
-                    <p>Cevap Gönderildi! <span id="answeredCount">0</span>/<span id="totalPlayers">0</span></p>
+                    <p>Cevap gönderildi! <span id="answeredCount">0</span>/<span id="totalPlayers">0</span></p>
                 </div>
             </div>
         </div>
 
         <div id="resultsScreen" class="screen">
             <div class="content-card results-card">
-                <h2 id="resultsTitle" class="results-title">Round Results</h2>
-                <div class="king-answer-reveal">
-                    👑 King chose: <span id="kingChoice" class="reveal-answer">...</span>
+                <h2 id="resultsTitle" class="results-title">Tur Sonuçları</h2>
+                <div class="king-box king-box-results" id="resultsKingBox">
+                    <div class="king-box-body">
+                        <div class="king-box-text">
+                            <span class="king-box-label">Kral:</span>
+                            <span id="resultsKingName" class="king-box-value">—</span>
+                            <span class="king-box-label">Kralın seçimi:</span>
+                            <span id="kingChoice" class="king-box-value">…</span>
+                        </div>
+                        <img src="/images/crown.png" alt="Taç" class="king-box-crown" />
+                    </div>
                 </div>
                 <ul id="scoreboardList" class="scoreboard-list"></ul>
                 <div class="results-actions">
-                    <button id="nextRoundBtn" class="game-btn btn-primary-game">➡️ Next Round</button>
-                    <button id="playAgainBtn" class="game-btn btn-secondary-game" style="display: none;">🔄 Play Again</button>
+                    <button type="button" id="nextRoundBtn" class="game-btn">Sonraki Tur</button>
+                    <button type="button" id="playAgainBtn" class="game-btn game-btn-muted" style="display: none;">Tekrar Oyna</button>
                 </div>
             </div>
         </div>

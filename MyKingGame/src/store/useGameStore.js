@@ -189,7 +189,7 @@ export const useGameStore = create((set, get) => ({
       });
 
       signalRService.on('GameStarted', (gameData) => {
-        const kingName = gameData?.kingName ?? '';
+        const kingName = gameData?.kingName ?? gameData?.KingName ?? '';
         const type = mapBackendQuestionType(gameData?.questionType);
         const { options, optionLetters } = buildLetterOptions(gameData?.options, type);
         set((s) => ({
