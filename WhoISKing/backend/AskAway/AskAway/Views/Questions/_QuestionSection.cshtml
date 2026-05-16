@@ -1,0 +1,70 @@
+@model AskAway.Models.QuestionSectionViewModel
+
+<section class="mb-5" id="@Model.AnchorId">
+    <h2 class="h4 mb-3 border-bottom pb-2">
+        @Model.Title
+        <span class="badge text-bg-secondary ms-2">@Model.Questions.Count</span>
+    </h2>
+
+    @if (Model.Questions.Count == 0)
+    {
+        <p class="text-muted small mb-0">Bu tipte soru yok.</p>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm bg-white rounded">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width:4rem;">#</th>
+                        <th scope="col">Soru</th>
+                        <th scope="col">Şıklar / not</th>
+                        <th scope="col" class="text-end" style="width:11rem;">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var q in Model.Questions)
+                {
+                    var opts = AskAway.Models.QuestionOptions.ParseStoredOptions(q.Options);
+                    <tr>
+                        <td class="text-muted">@q.Id</td>
+                        <td>@q.Text</td>
+                        <td>
+                            @if (q.QuestionType == AskAway.Models.QuestionType.MultipleChoice && opts.Count > 0)
+                            {
+                                <ul class="mb-0 small">
+                                    @for (var i = 0; i < opts.Count; i++)
+                                    {
+                                        <li><strong>@((char)('A' + i))</strong>. @opts[i]</li>
+                                    }
+                                </ul>
+                            }
+                            else if (q.QuestionType == AskAway.Models.QuestionType.PlayerSelection)
+                            {
+                                <span class="text-muted small">Oyunda oyuncu isimleri</span>
+                            }
+                            else if (q.QuestionType == AskAway.Models.QuestionType.PlayerOptions)
+                            {
+                                <span class="text-muted small">Oyunda oyuncular ekler</span>
+                            }
+                            else
+                            {
+                                <span class="text-warning small">Şık yok</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@q.Id">Düzenle</a>
+                            <form asp-action="Delete" asp-route-id="@q.Id" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Bu soruyu silmek istediğinize emin misiniz?');">
+                                    Sil
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

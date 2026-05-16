@@ -1,0 +1,52 @@
+<script>
+    (function () {
+        const typeSel = document.getElementById('questionTypeSelect');
+        const optionsBlock = document.getElementById('optionsBlock');
+        const optionsText = document.getElementById('optionsText');
+        const dynamicWrap = document.getElementById('dynamicOptions');
+        const addBtn = document.getElementById('addOptionRow');
+        const mc = '@((int)AskAway.Models.QuestionType.MultipleChoice)';
+
+        function refreshOptionsVisibility() {
+            const isMc = typeSel.value === mc;
+            optionsBlock.classList.toggle('d-none', !isMc);
+            if (!isMc) {
+                optionsText.value = '';
+                dynamicWrap.innerHTML = '';
+            }
+        }
+
+        function syncTextareaFromRows() {
+            const inputs = dynamicWrap.querySelectorAll('input.option-row-input');
+            const parts = [];
+            inputs.forEach(function (inp) {
+                const v = (inp.value || '').trim();
+                if (v) parts.push(v);
+            });
+            if (parts.length) {
+                optionsText.value = parts.join('\n');
+            }
+        }
+
+        addBtn.addEventListener('click', function () {
+            const n = dynamicWrap.querySelectorAll('.option-row').length;
+            if (n >= 5) return;
+            const row = document.createElement('div');
+            row.className = 'option-row input-group input-group-sm';
+            row.innerHTML = '<span class="input-group-text"></span><input type="text" class="form-control option-row-input" maxlength="200" /><button type="button" class="btn btn-outline-danger remove-row">×</button>';
+            row.querySelector('.input-group-text').textContent = String.fromCharCode(65 + n);
+            dynamicWrap.appendChild(row);
+            row.querySelector('.remove-row').addEventListener('click', function () {
+                row.remove();
+                syncTextareaFromRows();
+                Array.from(dynamicWrap.querySelectorAll('.option-row')).forEach(function (r, i) {
+                    r.querySelector('.input-group-text').textContent = String.fromCharCode(65 + i);
+                });
+            });
+            row.querySelector('input').addEventListener('input', syncTextareaFromRows);
+        });
+
+        typeSel.addEventListener('change', refreshOptionsVisibility);
+        refreshOptionsVisibility();
+    })();
+</script>

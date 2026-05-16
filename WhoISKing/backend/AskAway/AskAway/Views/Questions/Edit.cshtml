@@ -1,0 +1,49 @@
+@model AskAway.Models.QuestionFormViewModel
+
+@{
+    ViewData["Title"] = "Soru düzenle";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span class="navbar-brand mb-0 h1">Admin — Soru #@Model.Id</span>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-outline-light btn-sm" asp-action="Index">Listeye dön</a>
+                <form asp-controller="Admin" asp-action="Logout" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">Çıkış</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5" style="max-width: 720px;">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+                    <partial name="_QuestionFormFields" model="Model" />
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Güncelle</button>
+                        <a class="btn btn-outline-secondary" asp-action="Index">İptal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <partial name="_QuestionFormScripts" />
+</body>
+</html>

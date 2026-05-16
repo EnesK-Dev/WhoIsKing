@@ -1,0 +1,80 @@
+@model AskAway.Models.QuestionJsonImportViewModel
+
+@{
+    ViewData["Title"] = "JSON ile soru ekle";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span class="navbar-brand mb-0 h1">Admin — JSON ile soru</span>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-outline-light btn-sm" asp-action="Index">Listeye dön</a>
+                <a class="btn btn-outline-light btn-sm" asp-action="Create">Form ile ekle</a>
+                <form asp-controller="Admin" asp-action="Logout" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">Çıkış</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5" style="max-width: 900px;">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-4">
+                <p class="text-muted small mb-3">
+                    Kök olarak tek soru nesnesi veya soru dizisi gönderin.
+                    <code>questionType</code>: <code>0</code> / <code>MultipleChoice</code> / <code>standard</code>,
+                    <code>1</code> / <code>PlayerSelection</code> / <code>player_select</code>,
+                    <code>2</code> / <code>PlayerOptions</code> / <code>text_input</code>.
+                    Çoktan seçmelide <code>options</code> zorunlu (2–5 metin).
+                </p>
+
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                <form asp-action="CreateFromJson" method="post">
+                    <div class="mb-3">
+                        <label asp-for="JsonPayload" class="form-label"></label>
+                        <textarea asp-for="JsonPayload" class="form-control font-monospace" rows="18" spellcheck="false" placeholder='[ { "text": "...", "questionType": 0, "options": ["A", "B"] } ]'></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                        <a class="btn btn-outline-secondary" asp-action="Index">İptal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header">Örnek</div>
+            <div class="card-body">
+<pre class="small mb-0"><code>[
+  {
+    "text": "Favori rengin?",
+    "questionType": 0,
+    "options": ["Kırmızı", "Mavi", "Yeşil"]
+  },
+  {
+    "text": "Kimi seçiyorsun?",
+    "questionType": "player_select"
+  },
+  {
+    "text": "Bir şey yazın.",
+    "questionType": "text_input"
+  }
+]</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
