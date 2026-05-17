@@ -51,15 +51,19 @@ body {
 }
 
 .game-container {
+    margin-top: 0;
     position: relative;
     width: 100%;
+    max-width: 1920px; /* Resmin kalitesinin bozulmayacağı maksimum genişlik (örn: 1920px) */
     height: 100vh;
+    margin-left: auto;  /* Ekran çok büyükse soldan otomatik boşluk verir */
+    margin-right: auto; /* Ekran çok büyükse sağdan otomatik boşluk verir */
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #0d0e10;
+    background-color: #1A1A1D;
     background-image: url('/images/homeScreenweb.png');
-    background-size: cover;
+    background-size: contain; /* cover yerine contain yaparak resmin kırpılmasını veya taşmasını önleriz */
     background-position: center;
     background-repeat: no-repeat;
 }
