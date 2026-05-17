@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Image,
   View,
@@ -10,6 +10,22 @@ import {
 } from 'react-native';
 import CustomButton from '../components/common/CustomButton';
 import { useGameStore } from '../store/useGameStore';
+
+const TITLE_COLORS = ['#BF00FF', '#FFD700', '#00F5FF'];
+
+function RainbowTitle({ text, style }) {
+  const letterColors = useMemo(() => {
+    return text.split('').map(() => TITLE_COLORS[Math.floor(Math.random() * TITLE_COLORS.length)]);
+  }, [text]);
+
+  return (
+    <Text style={style}>
+      {text.split('').map((char, i) => (
+        <Text key={i} style={{ color: letterColors[i] }}>{char}</Text>
+      ))}
+    </Text>
+  );
+}
 
 const generalBackground = require('../../assets/winnerScreen.png');
 const crownImage = require('../../assets/crown.png');
@@ -64,7 +80,7 @@ export default function WinnerScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
           {/* Başlık */}
-          <Text style={styles.title}>KRAL BELİRLENDİ!</Text>
+          <RainbowTitle text="KRAL BELİRLENDİ!" style={styles.title} />
 
           {/* Kazanan Bölümü */}
           {winner && (
@@ -185,7 +201,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '900',
-    color: '#FFD700',
     marginBottom: 25,
     textAlign: 'center',
     letterSpacing: 2,
@@ -224,17 +239,25 @@ const styles = StyleSheet.create({
   },
   podyumColumn: {
     alignItems: 'center',
-    width: '100%',         // Sütunun kendisine ayrılan tüm slot genişliğini kullanmasını sağla
-    maxWidth: 160,         // Artık alan genişlediği için bu sınır gerçekçi bir şekilde çalışacak
+    width: '100%',
   },
   podyum1: {
     backgroundColor: '#FFD700',
+    width: '85%',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
   },
   podyum2: {
     backgroundColor: '#BF00FF',
+    width: '85%',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
   },
   podyum3: {
     backgroundColor: '#00F5FF',
+    width: '85%',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
   },
   podyumNumber: {
     color: '#1A1A1D',
