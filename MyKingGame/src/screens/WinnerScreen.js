@@ -167,8 +167,11 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: '#1A1A1D',
-    margin:20,
+    margin:50,
     borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#00F5FF',
+    overflow: 'hidden',
   },
   scrollContainer: {
     flex: 1,
@@ -220,7 +223,7 @@ const styles = StyleSheet.create({
   },
   podyumColumn: {
     alignItems: 'center',
-    maxWidth: 100,
+    maxWidth: 170,
   },
   podyumLeftColumn: {
     alignSelf: 'flex-end',
