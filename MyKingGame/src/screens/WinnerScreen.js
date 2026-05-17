@@ -11,7 +11,7 @@ import {
 import CustomButton from '../components/common/CustomButton';
 import { useGameStore } from '../store/useGameStore';
 
-const generalBackground = require('../../assets/WinnerScreen.png');
+const generalBackground = require('../../assets/winnerScreen.png');
 const crownImage = require('../../assets/crown.png');
 
 /**
@@ -82,43 +82,50 @@ export default function WinnerScreen({ navigation }) {
 
           {/* Podyum Yapısı */}
           <View style={styles.podyumContainer}>
-            {/* 2. Sırası (Sol) */}
-            {secondPlace && (
-              <View style={styles.podyumColumn}>
-                <Text style={[styles.podyumPlayerName, styles.podyumPlayerNameSecond]} numberOfLines={1}>
-                  {secondPlace.name}
-                </Text>
-                <View style={[styles.podyumBlock, styles.podyum2, { height: podyum2Height }]}>
-                  <Text style={[styles.podyumNumber, { fontSize: screenWidth * 0.12 }]}>2</Text>
+            <View style={styles.podyumSideSlot}>
+              {secondPlace && (
+                <View style={[styles.podyumColumn, styles.podyumLeftColumn]}>
+                  <Text
+                    style={[styles.podyumPlayerName, styles.podyumPlayerNameSecond]}
+                    numberOfLines={1}
+                  >
+                    {secondPlace.name}
+                  </Text>
+                  <View style={[styles.podyumBlock, styles.podyum2, { height: podyum2Height }]}>
+                    <Text style={[styles.podyumNumber, { fontSize: screenWidth * 0.12 }]}>2</Text>
+                  </View>
+                  <Text style={[styles.podyumScore, styles.podyumScoreSecond]}>{secondPlace.score}</Text>
                 </View>
-                <Text style={[styles.podyumScore, styles.podyumScoreSecond]}>{secondPlace.score}</Text>
-              </View>
-            )}
+              )}
+            </View>
 
-            {/* 1. Sırası (Ortada ve En Yüksek) */}
-            {winner && (
-              <View style={styles.podyumColumn}>
-                <View style={[styles.podyumBlock, styles.podyum1, { height: podyum1Height }]}>
-                  <Text style={[styles.podyumNumber, { fontSize: screenWidth * 0.16 }]}>1</Text>
+            <View style={styles.podyumCenterSlot}>
+              {winner && (
+                <View style={styles.podyumColumn}>
+                  <View style={[styles.podyumBlock, styles.podyum1, { height: podyum1Height }]}>
+                    <Text style={[styles.podyumNumber, { fontSize: screenWidth * 0.16 }]}>1</Text>
+                  </View>
+                  <Text style={[styles.podyumScore, styles.podyumScoreWinner]}>{winner.score}</Text>
                 </View>
-                <Text style={[styles.podyumScore, styles.podyumScoreWinner]}>
-                  {winner.score}
-                </Text>
-              </View>
-            )}
+              )}
+            </View>
 
-            {/* 3. Sırası (Sağ) */}
-            {thirdPlace && (
-              <View style={styles.podyumColumn}>
-                <Text style={[styles.podyumPlayerName, styles.podyumPlayerNameThird]} numberOfLines={1}>
-                  {thirdPlace.name}
-                </Text>
-                <View style={[styles.podyumBlock, styles.podyum3, { height: podyum3Height }]}>
-                  <Text style={[styles.podyumNumber, { fontSize: screenWidth * 0.12 }]}>3</Text>
+            <View style={styles.podyumSideSlot}>
+              {thirdPlace && (
+                <View style={[styles.podyumColumn, styles.podyumRightColumn]}>
+                  <Text
+                    style={[styles.podyumPlayerName, styles.podyumPlayerNameThird]}
+                    numberOfLines={1}
+                  >
+                    {thirdPlace.name}
+                  </Text>
+                  <View style={[styles.podyumBlock, styles.podyum3, { height: podyum3Height }]}>
+                    <Text style={[styles.podyumNumber, { fontSize: screenWidth * 0.12 }]}>3</Text>
+                  </View>
+                  <Text style={[styles.podyumScore, styles.podyumScoreThird]}>{thirdPlace.score}</Text>
                 </View>
-                <Text style={[styles.podyumScore, styles.podyumScoreThird]}>{thirdPlace.score}</Text>
-              </View>
-            )}
+              )}
+            </View>
           </View>
 
           {/* Diğer Oyuncular Listesi (4+) */}
@@ -159,7 +166,9 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(18, 18, 18, 0.29)',
+    backgroundColor: '#1A1A1D',
+    margin:20,
+    borderRadius: 20,
   },
   scrollContainer: {
     flex: 1,
@@ -197,18 +206,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'flex-end',
-    gap: 12,
     marginBottom: 35,
     marginTop: 0,
   },
-  podyumColumn: {
+  podyumSideSlot: {
     flex: 1,
+    minWidth: 0,
+  },
+  podyumCenterSlot: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+  },
+  podyumColumn: {
     alignItems: 'center',
     maxWidth: 100,
   },
+  podyumLeftColumn: {
+    alignSelf: 'flex-end',
+  },
+  podyumRightColumn: {
+    alignSelf: 'flex-start',
+  },
   podyumBlock: {
     width: '100%',
-    backgroundColor: '#C49A2B',
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -218,10 +239,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFD700',
   },
   podyum2: {
-    backgroundColor: '#BF00FF ',
+    backgroundColor: '#BF00FF',
   },
   podyum3: {
-    backgroundColor: '#00F5FF ',
+    backgroundColor: '#00F5FF',
   },
   podyumNumber: {
     color: '#1A1A1D',
