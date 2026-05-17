@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git restore *)",
+      "Bash(git pull *)",
+      "PowerShell(Stop-Process -Id 19892 -Force -ErrorAction SilentlyContinue)",
+      "Bash(dotnet run *)",
+      "Bash(git checkout *)",
+      "Bash(git commit *)",
+      "PowerShell(Stop-Process -Name \"AskAway\" -Force -ErrorAction SilentlyContinue)",
+      "PowerShell($pid = \\(Get-NetTCPConnection -LocalPort 5274 -ErrorAction SilentlyContinue\\).OwningProcess; if \\($pid\\) { Stop-Process -Id $pid -Force; Write-Output \"Durduruldu \\(PID: $pid\\)\" } else { Write-Output \"Port zaten boş\" })",
+      "PowerShell($procId = \\(Get-NetTCPConnection -LocalPort 5274 -ErrorAction SilentlyContinue\\).OwningProcess; if \\($procId\\) { Stop-Process -Id $procId -Force; Write-Output \"Durduruldu \\(PID: $procId\\)\" } else { Write-Output \"Port zaten boş\" })"
+    ]
+  }
+}
