@@ -76,13 +76,16 @@ export default function ScoreboardScreen({ navigation }) {
                     {!row.isKing ? <Text style={styles.answerChoice}>{row.choiceLabel}</Text> : null}
                   </Text>
                 </View>
-                {row.pointsEarned > 0 ? (
-                  <View style={styles.pointsBadge}>
-                    <Text style={styles.pointsBadgeText}>+{row.pointsEarned} Puan</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.pointsZero}>0 Puan</Text>
-                )}
+                <View style={styles.scoreColumn}>
+                  {row.pointsEarned > 0 ? (
+                    <View style={styles.pointsBadge}>
+                      <Text style={styles.pointsBadgeText}>+{row.pointsEarned}</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.pointsZero}>+0</Text>
+                  )}
+                  <Text style={styles.totalScore}>{row.score ?? 0} Puan</Text>
+                </View>
               </View>
             ))}
 
@@ -285,13 +288,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1,
   },
+  scoreColumn: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
   pointsZero: {
     fontFamily: 'KKowe',
     color: '#A8DCE2',
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 1,
-    alignSelf: 'center',
+  },
+  totalScore: {
+    fontFamily: 'KKowe',
+    color: '#FFD700',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   buttonWrap: {
     marginTop: 10,

@@ -340,7 +340,7 @@ connection.on("ShowResults", (data) => {
             li.className = `score-item ${p.isCorrect ? 'correct' : ''} ${p.isKing ? 'king' : ''}`;
 
             let icon = p.isKing ? "" : (p.isCorrect ? "+" : "—");
-            let pointsText = p.isKing ? "" : (p.isCorrect ? "+5" : "0");
+            let pointsText = p.isKing ? "" : (p.isCorrect ? "+" + p.pointsEarned : "0");
 
             // 2. Sorun Çözümü: Artık C#'tan gelen .answerText'i kullanıyoruz (Örn: Tutku Seçti)
             let playerVoteText = p.isKing ? "Kral" : `(${p.answerText} Seçti)`;
