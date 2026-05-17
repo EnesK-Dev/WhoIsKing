@@ -11,7 +11,7 @@ import {
 import CustomButton from '../components/common/CustomButton';
 import { useGameStore } from '../store/useGameStore';
 
-const generalBackground = require('../../assets/lobyScreen.png');
+const generalBackground = require('../../assets/WinnerScreen.png');
 const crownImage = require('../../assets/crown.png');
 
 /**

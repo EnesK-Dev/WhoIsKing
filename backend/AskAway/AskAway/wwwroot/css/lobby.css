@@ -497,15 +497,15 @@ body {
         min-height: 100svh;
         height: auto;
         align-items: flex-start;
-        padding: 16px 0;
-        background-image: url('/images/homescreen.png');
+        padding: 3px 0px;
+        background-image: url('/images/smallScreenBackground.png');
         background-size: cover;
         background-position: center top;
         background-repeat: no-repeat;
     }
 
     .game-container.king-mode {
-        background-image: url('/images/homescreen.png');
+        background-image: url('/images/smallScreenBackground.png');
         background-size: cover;
         background-position: center top;
         background-repeat: no-repeat;
@@ -513,7 +513,9 @@ body {
 
     .screen {
         align-items: flex-start;
-        padding: 16px 0 24px;
+        display: flex;
+        justify-content: center; /* Yatayda ortalar */
+        align-items: center;     /* Dikeyde ortalar */
     }
 
     .content-card,
