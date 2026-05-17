@@ -5,7 +5,8 @@ const screens = {
     join: document.getElementById('joinScreen'),
     lobby: document.getElementById('lobbyScreen'),
     game: document.getElementById('gameScreen'),
-    results: document.getElementById('resultsScreen')
+    results: document.getElementById('resultsScreen'),
+    winner: document.getElementById('winnerScreen')
 };
 
 const buttons = {
@@ -62,6 +63,88 @@ function escapeHtml(text) {
     const el = document.createElement('span');
     el.textContent = text ?? '';
     return el.innerHTML;
+}
+
+function buildRainbowTitle(text) {
+    const colors = ['#BF00FF', '#FFD700', '#00F5FF'];
+    return text.split('').map(char => {
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        return `<span style="color:${color}">${escapeHtml(char)}</span>`;
+    }).join('');
+}
+
+function showWinnerScreen(playerResults) {
+    const sorted = [...playerResults].sort(
+        (a, b) => b.score - a.score || String(a.playerName).localeCompare(String(b.playerName))
+    );
+
+    const winner = sorted[0];
+    const second = sorted[1];
+    const third = sorted[2];
+    const others = sorted.slice(3);
+
+    const titleEl = document.getElementById('winnerTitle');
+    if (titleEl) titleEl.innerHTML = buildRainbowTitle('KRAL BELİRLENDİ!');
+
+    const heroName = document.getElementById('winnerHeroName');
+    if (heroName) heroName.textContent = winner?.playerName || '';
+
+    const podiumRow = document.getElementById('podiumRow');
+    if (podiumRow) {
+        podiumRow.innerHTML = '';
+        const h1 = 171, h2 = 117, h3 = 81;
+
+        const slot2 = document.createElement('div');
+        slot2.className = 'podium-slot';
+        if (second) {
+            slot2.innerHTML = `
+                <span class="podium-player-name podium-name-2">${escapeHtml(second.playerName)}</span>
+                <div class="podium-block podium-block-2" style="height:${h2}px">
+                    <span class="podium-number" style="font-size:clamp(1.8rem,5vw,2.8rem)">2</span>
+                </div>
+                <span class="podium-score podium-score-2">${second.score}</span>`;
+        }
+        podiumRow.appendChild(slot2);
+
+        const slot1 = document.createElement('div');
+        slot1.className = 'podium-slot podium-slot-center';
+        if (winner) {
+            slot1.innerHTML = `
+                <div class="podium-block podium-block-1" style="height:${h1}px">
+                    <span class="podium-number" style="font-size:clamp(2.2rem,6vw,3.4rem)">1</span>
+                </div>
+                <span class="podium-score podium-score-1">${winner.score}</span>`;
+        }
+        podiumRow.appendChild(slot1);
+
+        const slot3 = document.createElement('div');
+        slot3.className = 'podium-slot';
+        if (third) {
+            slot3.innerHTML = `
+                <span class="podium-player-name podium-name-3">${escapeHtml(third.playerName)}</span>
+                <div class="podium-block podium-block-3" style="height:${h3}px">
+                    <span class="podium-number" style="font-size:clamp(1.8rem,5vw,2.8rem)">3</span>
+                </div>
+                <span class="podium-score podium-score-3">${third.score}</span>`;
+        }
+        podiumRow.appendChild(slot3);
+    }
+
+    const othersSection = document.getElementById('otherPlayersSection');
+    if (othersSection) {
+        othersSection.innerHTML = '';
+        others.forEach((p, i) => {
+            const row = document.createElement('div');
+            row.className = 'other-player-row';
+            row.innerHTML = `
+                <span class="other-player-pos">${i + 4}.</span>
+                <span class="other-player-name">${escapeHtml(p.playerName)}</span>
+                <span class="other-player-score">${p.score} Puan</span>`;
+            othersSection.appendChild(row);
+        });
+    }
+
+    showScreen('winner');
 }
 
 function getQuestionTypeValue(data) {
@@ -360,32 +443,24 @@ connection.on("ShowResults", (data) => {
         });
     }
 
+    if (gameElements.waitingState) gameElements.waitingState.style.display = 'none';
+
+    if (data.isGameOver) {
+        showWinnerScreen(data.playerResults);
+        return;
+    }
+
     if (resultsTitle) {
-        if (data.isGameOver) {
-            resultsTitle.innerHTML = "OYUN BİTTİ!";
-
-            if (isHost) {
-                buttons.nextRound.style.display = 'none';
-                buttons.playAgain.style.display = 'flex';
-            } else {
-                buttons.nextRound.style.display = 'none';
-                buttons.playAgain.style.display = 'none';
-                resultsTitle.innerHTML += "<br><small style='font-size:0.5em'>Hostun oyunu yeniden başlatması bekleniyor...</small>";
-            }
+        resultsTitle.textContent = "Tur Sonucu";
+        if (isHost) {
+            buttons.nextRound.style.display = 'flex';
+            buttons.playAgain.style.display = 'none';
         } else {
-            resultsTitle.textContent = "Tur Sonucu";
-
-            if (isHost) {
-                buttons.nextRound.style.display = 'flex';
-                buttons.playAgain.style.display = 'none';
-            } else {
-                buttons.nextRound.style.display = 'none';
-                buttons.playAgain.style.display = 'none';
-            }
+            buttons.nextRound.style.display = 'none';
+            buttons.playAgain.style.display = 'none';
         }
     }
 
-    if (gameElements.waitingState) gameElements.waitingState.style.display = 'none';
     showScreen('results');
 });
 
@@ -500,6 +575,11 @@ if (buttons.nextRound) {
             alert('Tur başlatılamadı: ' + (err.message || String(err)));
         });
     });
+}
+
+const returnToLobbyBtn = document.getElementById('returnToLobbyBtn');
+if (returnToLobbyBtn) {
+    returnToLobbyBtn.addEventListener('click', () => resetToWelcome());
 }
 
 // --- 5. OYUN EKRANI FONKSİYONLARI ---
