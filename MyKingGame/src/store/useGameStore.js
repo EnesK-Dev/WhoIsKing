@@ -245,6 +245,7 @@ export const useGameStore = create((set, get) => ({
           isKing: r.isKing,
           choiceLabel: r.answerText,
           pointsEarned: Math.max(0, r.score - (prevScores[r.playerName] ?? 0)),
+          score: r.score,
         }));
 
         const players = (get().players ?? []).map((p) => {

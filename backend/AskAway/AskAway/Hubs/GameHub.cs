@@ -356,19 +356,19 @@ namespace AskAway.Hubs
                         kingAnswerText = QuestionOptions.LetterToOptionText(currentQuestion, kingLetter) ?? "Bilinmeyen Şık";
                     }
 
-                    // Puanları dağıt
+                    // Puanları dağıt: 1. doğru cevap +5, 2. +4, 3. ve sonrası +3
                     var correctPlayers = room.Players
                         .Where(p => p.Id != king.Id && p.CurrentAnswer == kingLetter)
                         .OrderBy(p => p.AnswerOrder)
                         .ToList();
 
+                    var earnedMap = new Dictionary<int, int>();
                     for (int i = 0; i < correctPlayers.Count; i++)
                     {
                         var p = correctPlayers[i];
-                        int speedBonus = 0;
-                        if (i == 0) speedBonus = 3;
-                        else if (i == 1) speedBonus = 2;
-                        p.Score += (5 + speedBonus);
+                        int earned = i == 0 ? 5 : (i == 1 ? 4 : 3);
+                        p.Score += earned;
+                        earnedMap[p.Id] = earned;
                     }
 
                     // 2. Oyuncuların cevaplarını çözümle
@@ -392,13 +392,16 @@ namespace AskAway.Hubs
                             }
                         }
 
+                        int pointsEarned = 0;
+                        if (isCorrect) earnedMap.TryGetValue(p.Id, out pointsEarned);
                         roundResults.Add(new
                         {
                             playerName = p.Name,
                             isKing = p.Id == king.Id,
                             answerText = playerAnswerText,
                             isCorrect = isCorrect,
-                            score = p.Score
+                            score = p.Score,
+                            pointsEarned
                         });
                     }
 
