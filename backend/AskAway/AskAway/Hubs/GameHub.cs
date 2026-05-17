@@ -263,21 +263,25 @@ namespace AskAway.Hubs
                     // Kralın seçtiği cevabı yazan "Kazananı" buluyoruz
                     var winner = room.Players.FirstOrDefault(p => p.Id != king.Id && p.CurrentAnswer == selectedOption);
 
+                    int mod2Points = 5;
                     if (winner != null)
                     {
-                        winner.Score += 10; // Kralın seçtiği kişiye kocaman 10 Puan!
+                        winner.Score += mod2Points;
                     }
 
                     var roundResults = new List<object>();
                     foreach (var p in room.Players)
                     {
+                        bool isWinner = (winner != null && p.Id == winner.Id);
+                        int pointsEarned = isWinner ? mod2Points : 0;
                         roundResults.Add(new
                         {
                             playerName = p.Name,
                             isKing = p.Id == king.Id,
                             answerText = p.Id == king.Id ? "Seçici" : p.CurrentAnswer,
-                            isCorrect = (winner != null && p.Id == winner.Id), // Sadece Kralın seçtiği doğru sayılır
-                            score = p.Score
+                            isCorrect = isWinner,
+                            score = p.Score,
+                            pointsEarned
                         });
                     }
 
