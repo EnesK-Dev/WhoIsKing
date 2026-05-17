@@ -211,32 +211,21 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginBottom: 35,
     marginTop: 0,
+    width: '100%',         // Konteynerin overlay alanını tamamen kaplamasını sağladık
+    paddingHorizontal: 10, // Kenarlardan çok hafif bir koruma payı
   },
   podyumSideSlot: {
     flex: 1,
-    minWidth: 0,
+    alignItems: 'center',  // Sütunları kendi içinde ortala
   },
   podyumCenterSlot: {
-    flex: 1,
-    minWidth: 0,
+    flex: 1.2,             // 1. olan orta podyum yanlardan biraz daha geniş olsun (Tasarımı rahatlatır)
     alignItems: 'center',
   },
   podyumColumn: {
     alignItems: 'center',
-    maxWidth: 170,
-  },
-  podyumLeftColumn: {
-    alignSelf: 'flex-end',
-  },
-  podyumRightColumn: {
-    alignSelf: 'flex-start',
-  },
-  podyumBlock: {
-    width: '100%',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+    width: '100%',         // Sütunun kendisine ayrılan tüm slot genişliğini kullanmasını sağla
+    maxWidth: 160,         // Artık alan genişlediği için bu sınır gerçekçi bir şekilde çalışacak
   },
   podyum1: {
     backgroundColor: '#FFD700',
