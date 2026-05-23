@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   ImageBackground,
   ScrollView,
@@ -37,12 +38,20 @@ export default function GameScreen({ navigation }) {
   const anonymousKingChoices = useGameStore((s) => s.anonymousKingChoices);
   const answerProgress = useGameStore((s) => s.answerProgress);
   const clearRoundSummaryFlag = useGameStore((s) => s.clearRoundSummaryFlag);
+  const dynamicThemeColor = useGameStore((s) => s.dynamicThemeColor);
+  const undoAnswer = useGameStore((s) => s.undoAnswer);
+  const connectionStatus = useGameStore((s) => s.connectionStatus);
+
   const [textDraft, setTextDraft] = useState('');
+  const timerRef = useRef(null);
+  const textDraftRef = useRef('');
+  const timerAutoSubmitDone = useRef(false);
+  const [timerSeconds, setTimerSeconds] = useState(60);
 
   const me = players.find((p) => p.name === selfName || p.id === selfName);
   const kingPlayer = players.find((p) => p.isKing);
   const isCurrentPlayerKing = !!me?.isKing;
-  const themeAccentColor = isCurrentPlayerKing ? '#FFD700' : '#00F5FF';
+  const themeAccentColor = isCurrentPlayerKing ? '#FFD700' : dynamicThemeColor;
 
   const letters = currentQuestion?.optionLetters ?? [];
   const labels = currentQuestion?.options ?? [];
@@ -77,6 +86,8 @@ export default function GameScreen({ navigation }) {
 
   useEffect(() => {
     setTextDraft('');
+    textDraftRef.current = '';
+    timerAutoSubmitDone.current = false;
   }, [currentQuestion?.text, currentQuestion?.type]);
 
   useEffect(() => {
@@ -85,6 +96,37 @@ export default function GameScreen({ navigation }) {
       clearRoundSummaryFlag();
     }
   }, [lastRoundSummary, navigation, clearRoundSummaryFlag]);
+
+  // 60s timer — text_input, king olmayan, cevap verilmemişse
+  useEffect(() => {
+    const isTextNonKing = currentQuestion?.type === 'text_input' && !isCurrentPlayerKing;
+    clearInterval(timerRef.current);
+    timerRef.current = null;
+
+    if (!isTextNonKing || hasSelected) return;
+
+    setTimerSeconds(60);
+    timerAutoSubmitDone.current = false;
+    timerRef.current = setInterval(() => {
+      setTimerSeconds((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    };
+  }, [currentQuestion?.type, currentQuestion?.text, isCurrentPlayerKing, hasSelected]);
+
+  // Süre dolunca otomatik gönder
+  useEffect(() => {
+    if (timerSeconds !== 0 || timerAutoSubmitDone.current) return;
+    if (currentQuestion?.type === 'text_input' && !isCurrentPlayerKing && !hasSelected && selfName) {
+      timerAutoSubmitDone.current = true;
+      const answer = textDraftRef.current.trim() || 'Zaman Doldu';
+      makeSelection(selfName, answer);
+      submitAnswer(answer);
+    }
+  }, [timerSeconds]);
 
   const handleSubmitText = async () => {
     const t = textDraft.trim();
@@ -117,9 +159,7 @@ export default function GameScreen({ navigation }) {
               key={`${idx}-${String(line).slice(0, 12)}`}
               style={[styles.kingPickRow, { borderColor: themeAccentColor }]}
               onPress={async () => {
-                if (kingAnonymousPicked) {
-                  return;
-                }
+                if (kingAnonymousPicked) return;
                 pickKingAnonymousAnswer(line);
                 await submitAnswer(line);
                 Vibration.vibrate(SOFT_VIBRATION_MS);
@@ -138,11 +178,29 @@ export default function GameScreen({ navigation }) {
       return (
         <View style={[styles.textBlock, { borderColor: themeAccentColor, shadowColor: themeAccentColor }]}>
           <Text style={styles.textQuestion}>{currentQuestion.text}</Text>
+          {!hasSelected && (
+            <View style={styles.timerContainer}>
+              <Text style={[styles.timerText, { color: themeAccentColor }]}>{timerSeconds}s</Text>
+              <View style={[styles.timerBar, { borderColor: themeAccentColor }]}>
+                <View
+                  style={[
+                    styles.timerBarFill,
+                    {
+                      backgroundColor: themeAccentColor,
+                      width: `${(timerSeconds / 60) * 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
           <CustomInput
             value={textDraft}
-            onChangeText={setTextDraft}
+            onChangeText={(val) => {
+              setTextDraft(val);
+              textDraftRef.current = val;
+            }}
             placeholder="Cevabını yaz"
-            maxLength={120}
             editable={!hasSelected}
           />
           <View style={styles.textSubmitWrap}>
@@ -157,9 +215,7 @@ export default function GameScreen({ navigation }) {
         <Text style={styles.textQuestion}>{currentQuestion.text}</Text>
         <Text style={styles.waitingText}>
           Oyuncular yazıyor…
-          {answerProgress
-            ? ` (${answerProgress.answered} / ${answerProgress.target})`
-            : ''}
+          {answerProgress ? ` (${answerProgress.answered} / ${answerProgress.target})` : ''}
         </Text>
       </View>
     );
@@ -168,11 +224,22 @@ export default function GameScreen({ navigation }) {
   const renderWaitingHint = () => {
     if (currentQuestion?.type === 'text_input') {
       if (!isCurrentPlayerKing) {
-        return hasSelected ? (
-          <Text style={styles.waitingText}>Cevabın kaydedildi, diğerleri ve kral bekleniyor…</Text>
-        ) : (
-          <Text style={styles.waitingText}>Cevabını yazıp Gönder.</Text>
-        );
+        if (hasSelected) {
+          return (
+            <>
+              <Text style={styles.waitingText}>Cevabın kaydedildi, diğerleri ve kral bekleniyor…</Text>
+              <TouchableOpacity
+                style={[styles.undoBtn, { borderColor: themeAccentColor }]}
+                onPress={undoAnswer}
+              >
+                <Text style={[styles.undoBtnText, { color: themeAccentColor }]}>
+                  Cevabımı Geri Al / Değiştir
+                </Text>
+              </TouchableOpacity>
+            </>
+          );
+        }
+        return <Text style={styles.waitingText}>Cevabını yazıp Gönder.</Text>;
       }
       if (anonymousKingChoices?.length) {
         return kingAnonymousPicked ? (
@@ -192,12 +259,22 @@ export default function GameScreen({ navigation }) {
               Cevaplar: {answerProgress.answered} / {answerProgress.target}
             </Text>
           ) : null}
+          {!isCurrentPlayerKing && (
+            <TouchableOpacity
+              style={[styles.undoBtn, { borderColor: themeAccentColor }]}
+              onPress={undoAnswer}
+            >
+              <Text style={[styles.undoBtnText, { color: themeAccentColor }]}>
+                Cevabımı Geri Al / Değiştir
+              </Text>
+            </TouchableOpacity>
+          )}
         </>
       );
     }
     return (
       <Text style={styles.waitingText}>
-        {isCurrentPlayerKing ? 'Doğru kabul ettiğin şıkkı seç .' : 'Kralın seçeceği şıkkı tahmin et.'}
+        {isCurrentPlayerKing ? 'Doğru kabul ettiğin şıkkı seç.' : 'Kralın seçeceği şıkkı tahmin et.'}
       </Text>
     );
   };
@@ -246,7 +323,7 @@ export default function GameScreen({ navigation }) {
                   <Text style={styles.kingSelfText}>KRAL SENSİN</Text>
                 </View>
               ) : (
-                <View style={styles.kingBox}>
+                <View style={[styles.kingBox, { borderColor: themeAccentColor }]}>
                   <View style={styles.kingBoxBody}>
                     <View style={styles.kingBoxTextWrap}>
                       <Text style={styles.kingBoxCaption}>Bu turun kralı:</Text>
@@ -278,6 +355,13 @@ export default function GameScreen({ navigation }) {
           </ScrollView>
         </View>
       </View>
+
+      {connectionStatus === 'Reconnecting' && (
+        <View style={styles.reconnectOverlay}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.reconnectText}>Yeniden bağlanıyor…</Text>
+        </View>
+      )}
     </ImageBackground>
   );
 }
@@ -301,9 +385,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     backgroundColor: '#1A1A1D',
     borderWidth: 3,
-    borderColor: '#00F5FF',
     opacity: 0.95,
-    shadowColor: '#00F5FF',
     shadowOffset: { width: 5, height: 10 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -352,7 +434,6 @@ const styles = StyleSheet.create({
   kingBox: {
     width: '100%',
     borderWidth: 2,
-    borderColor: '#00F5FF',
     backgroundColor: '#111215',
     borderRadius: 12,
     paddingHorizontal: 12,
@@ -412,7 +493,6 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#111215',
     borderWidth: 1,
-    borderColor: '#00F5FF',
     padding: 16,
     borderRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -443,7 +523,6 @@ const styles = StyleSheet.create({
   },
   kingPickRow: {
     borderWidth: 1,
-    borderColor: '#00F5FF',
     backgroundColor: '#1D1F25',
     padding: 12,
     borderRadius: 8,
@@ -453,6 +532,66 @@ const styles = StyleSheet.create({
     fontFamily: 'KKowe',
     color: '#D3F9FF',
     fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: 1,
+    flexWrap: 'wrap',
+  },
+  timerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  timerText: {
+    fontFamily: 'KKowe',
+    fontSize: 18,
+    fontWeight: '800',
+    width: 44,
+    textAlign: 'center',
+  },
+  timerBar: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  timerBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  undoBtn: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderWidth: 2,
+    borderRadius: 12,
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: 'transparent',
+  },
+  undoBtnText: {
+    fontFamily: 'KKowe',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  reconnectOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  reconnectText: {
+    fontFamily: 'KKowe',
+    color: '#FFFFFF',
+    fontSize: 20,
     fontWeight: '800',
     letterSpacing: 1,
   },

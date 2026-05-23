@@ -589,7 +589,7 @@ if (submitOpenEndedBtn) {
                 .then(() => {
                     document.getElementById('textInputContainer').style.display = 'none';
                     if (gameElements.waitingState) {
-                        gameElements.waitingState.innerHTML = "<p>Cevap Gönderildi! Diğerleri bekleniyor...</p><button type='button' id='undoAnswerBtn' class='undo-btn'>Cevabımı Geri Al / Değiştir</button>";
+                        gameElements.waitingState.innerHTML = `<p>Cevap gönderildi! <span id="answeredCount">…</span>/<span id="totalPlayers">…</span></p><button type='button' id='undoAnswerBtn' class='undo-btn'>Cevabımı Geri Al / Değiştir</button>`;
                         gameElements.waitingState.style.display = 'block';
                         attachUndoListener();
                     }
@@ -604,8 +604,10 @@ if (submitOpenEndedBtn) {
     };
 }
 connection.on("UpdateAnswerCount", (answered, total) => {
-    if (gameElements.answeredCount) gameElements.answeredCount.textContent = answered;
-    if (gameElements.totalPlayers) gameElements.totalPlayers.textContent = total;
+    const answeredEl = document.getElementById('answeredCount');
+    const totalEl = document.getElementById('totalPlayers');
+    if (answeredEl) answeredEl.textContent = answered;
+    if (totalEl) totalEl.textContent = total;
 
     const undoBtn = document.getElementById('undoAnswerBtn');
     if (undoBtn) {
@@ -811,7 +813,7 @@ gameElements.optionButtons.forEach(btn => {
         gameElements.optionButtons.forEach(b => b.disabled = true);
         btn.classList.add('selected');
         if (gameElements.waitingState) {
-            gameElements.waitingState.innerHTML = `<p>Cevap gönderildi! <span id="answeredCount">0</span>/<span id="totalPlayers">0</span></p><button type="button" id="undoAnswerBtn" class="undo-btn">Cevabımı Geri Al / Değiştir</button>`;
+            gameElements.waitingState.innerHTML = `<p>Cevap gönderildi! <span id="answeredCount">…</span>/<span id="totalPlayers">…</span></p><button type="button" id="undoAnswerBtn" class="undo-btn">Cevabımı Geri Al / Değiştir</button>`;
             gameElements.waitingState.style.display = 'block';
             attachUndoListener();
         }

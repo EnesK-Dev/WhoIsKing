@@ -34,6 +34,12 @@ function mapBackendQuestionType(qt) {
   return 'standard';
 }
 
+function getThemeColorForType(type) {
+  if (type === 'player_select') return '#BF00FF';
+  if (type === 'text_input') return '#FF6600';
+  return '#00F5FF';
+}
+
 function buildLetterOptions(rawOptions, type) {
   const options = [];
   const optionLetters = [];
@@ -118,6 +124,7 @@ export const useGameStore = create((set, get) => ({
   answerProgress: null,
   anonymousKingChoices: null,
   isGameOverFromServer: false,
+  dynamicThemeColor: '#00F5FF',
   /** Hub Error mesajı (JoinRoom gibi invoke hata fırlatmayan çağrılar için). */
   lastHubError: null,
 
@@ -134,8 +141,12 @@ export const useGameStore = create((set, get) => ({
           connectionError: error?.message ?? null,
         });
       },
-      onReconnected: () => {
+      onReconnected: (connectionId) => {
         set({ connectionStatus: 'Connected', connectionError: null });
+        const { roomId, localPlayerName } = get();
+        if (roomId && localPlayerName) {
+          signalRService.invoke('RejoinRoom', roomId, localPlayerName).catch(console.warn);
+        }
       },
       onDisconnected: (error) => {
         set({
@@ -192,7 +203,9 @@ export const useGameStore = create((set, get) => ({
         const kingName = gameData?.kingName ?? gameData?.KingName ?? '';
         const type = mapBackendQuestionType(gameData?.questionType);
         const { options, optionLetters } = buildLetterOptions(gameData?.options, type);
+        const themeColor = getThemeColorForType(type);
         set((s) => ({
+          dynamicThemeColor: themeColor,
           gameState: 'playing',
           currentQuestion: {
             id: null,
@@ -269,6 +282,56 @@ export const useGameStore = create((set, get) => ({
           gameState: isGameOver ? 'game_over' : get().gameState,
           isGameOverFromServer: isGameOver,
           selections: {},
+        });
+      });
+
+      signalRService.on('AnswerUndone', () => {
+        const name = get().localPlayerName;
+        set((s) => {
+          const newSelections = { ...s.selections };
+          delete newSelections[name];
+          return { selections: newSelections };
+        });
+      });
+
+      signalRService.on('RejoinedLobby', (data) => {
+        const playerList = data?.players ?? [];
+        set((s) => ({
+          gameState: 'waiting',
+          players: mergePlayerList(s.players, playerList),
+          roomId: data?.roomCode ? String(data.roomCode) : s.roomId,
+        }));
+      });
+
+      signalRService.on('RejoinedGame', (data) => {
+        const type = mapBackendQuestionType(data?.questionType);
+        const { options, optionLetters } = buildLetterOptions(data?.options, type);
+        const themeColor = getThemeColorForType(type);
+        const kingName = data?.kingName ?? '';
+        set((s) => {
+          const newSelections = data?.alreadyAnswered
+            ? { ...s.selections, [s.localPlayerName]: '__submitted__' }
+            : {};
+          return {
+            gameState: 'playing',
+            dynamicThemeColor: themeColor,
+            currentQuestion: {
+              id: null,
+              type,
+              text: data?.questionText ?? '',
+              options,
+              optionLetters,
+            },
+            players: s.players.map((p) => ({
+              ...p,
+              isKing: p.name === kingName,
+            })),
+            answerProgress:
+              data?.answeredCount != null
+                ? { answered: data.answeredCount, target: data.totalPlayers }
+                : s.answerProgress,
+            selections: newSelections,
+          };
         });
       });
 
@@ -377,6 +440,18 @@ export const useGameStore = create((set, get) => ({
     }
   },
 
+  undoAnswer: async () => {
+    const { roomId, localPlayerName } = get();
+    if (!roomId || !localPlayerName) return false;
+    try {
+      await signalRService.invoke('UndoAnswer', roomId, localPlayerName);
+      return true;
+    } catch (error) {
+      console.warn('[Store] UndoAnswer failed:', error?.message ?? error);
+      return false;
+    }
+  },
+
   SelectKingAnswer: async (answer) => get().SubmitAnswer(answer),
 
   setGameState: (state) => set({ gameState: state }),
@@ -395,6 +470,7 @@ export const useGameStore = create((set, get) => ({
       kingAnswer: null,
       roundSummary: null,
       gameResult: null,
+      dynamicThemeColor: '#00F5FF',
     }),
 
   makeSelection: (playerId, value) =>

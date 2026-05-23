@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ImageBackground, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, ImageBackground, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import CustomButton from '../components/common/CustomButton';
 import PlayerBadge from '../components/game/PlayerBadge';
 import { useGameStore } from '../store/useGameStore';
@@ -16,6 +16,7 @@ export default function LobbyScreen({ navigation }) {
   const gameState = useGameStore((s) => s.gameState);
   const currentQuestion = useGameStore((s) => s.currentQuestion);
   const connectionError = useGameStore((s) => s.connectionError);
+  const connectionStatus = useGameStore((s) => s.connectionStatus);
 
   const selfName = localPlayerName || currentPlayerId;
   const me = players.find((p) => p.name === selfName || p.id === selfName);
@@ -57,6 +58,13 @@ export default function LobbyScreen({ navigation }) {
           )}
         </View>
       </View>
+
+      {connectionStatus === 'Reconnecting' && (
+        <View style={styles.reconnectOverlay}>
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text style={styles.reconnectText}>Yeniden bağlanıyor…</Text>
+        </View>
+      )}
     </ImageBackground>
   );
 }
@@ -118,5 +126,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 10,
+  },
+  reconnectOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  reconnectText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
 });

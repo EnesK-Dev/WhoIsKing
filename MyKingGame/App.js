@@ -1,4 +1,9 @@
 import { NavigationContainer } from '@react-navigation/native';
+import {
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+  useFonts as useNunitoFonts,
+} from '@expo-google-fonts/nunito';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -18,8 +23,12 @@ export default function App() {
     KKowe: require('./assets/font/KKowe.ttf'),
     GraffitiCity: require('./assets/font/Graffiti City.otf'),
   });
+  const [nunitoLoaded, nunitoError] = useNunitoFonts({
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+  });
 
-  const canRender = fontsLoaded || !!fontError;
+  const canRender = (fontsLoaded || !!fontError) && (nunitoLoaded || !!nunitoError);
 
   if (canRender && !isGlobalFontApplied) {
     if (!Text.defaultProps) {
@@ -29,11 +38,11 @@ export default function App() {
       TextInput.defaultProps = {};
     }
     Text.defaultProps.style = [
-      { fontFamily: 'KKowe', letterSpacing: 1.1, fontWeight: '800', fontSize: 18 },
+      { fontFamily: 'Nunito_800ExtraBold', letterSpacing: 1.1, fontWeight: '800', fontSize: 18 },
       Text.defaultProps.style,
     ];
     TextInput.defaultProps.style = [
-      { fontFamily: 'KKowe', letterSpacing: 1, fontWeight: '800', fontSize: 18 },
+      { fontFamily: 'Nunito_800ExtraBold', letterSpacing: 1, fontWeight: '800', fontSize: 18 },
       TextInput.defaultProps.style,
     ];
     isGlobalFontApplied = true;
