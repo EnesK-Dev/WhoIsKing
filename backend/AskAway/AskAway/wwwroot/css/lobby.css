@@ -40,6 +40,10 @@
     --shadow-cyan-strong: 5px 12px 28px rgba(0, 245, 255, 0.5);
     --shadow-gold: 0 0 18px rgba(255, 215, 0, 0.28);
     --glow-cyan: 0 0 14px rgba(0, 245, 255, 0.45);
+    /* Dinamik tema — JS tarafından soru tipine göre güncellenir */
+    --dynamic-theme-color: #00F5FF;
+    --dynamic-theme-glow: rgba(0, 245, 255, 0.4);
+    --dynamic-theme-shadow: 5px 10px 20px rgba(0, 245, 255, 0.35);
 }
 
 body {
@@ -140,7 +144,13 @@ body {
 }
 
 .game-card,
-.results-card,
+.results-card {
+    background: var(--color-panel);
+    border: 3px solid var(--dynamic-theme-color);
+    box-shadow: var(--dynamic-theme-shadow);
+    opacity: 0.95;
+}
+
 .lobby-card {
     background: var(--color-panel);
     border: 3px solid var(--color-cyan);
@@ -577,7 +587,7 @@ body {
 
 .king-box {
     width: 100%;
-    border: 2px solid var(--color-cyan);
+    border: 2px solid var(--dynamic-theme-color);
     background: var(--color-bg);
     border-radius: 12px;
     padding: 10px 12px;
@@ -681,11 +691,11 @@ body {
 .question-card {
     width: 100%;
     background: var(--color-bg);
-    border: 1px solid var(--color-cyan);
+    border: 1px solid var(--dynamic-theme-color);
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 12px;
-    box-shadow: 0 4px 10px rgba(0, 245, 255, 0.15);
+    box-shadow: 0 4px 10px var(--dynamic-theme-glow);
 }
 
 .question-card.theme-king {
@@ -780,7 +790,7 @@ body {
     gap: 12px;
     padding: 12px 14px;
     background: #1D1F25;
-    border: 1px solid var(--color-cyan);
+    border: 1px solid var(--dynamic-theme-color);
     border-radius: 8px;
     color: var(--color-text-soft);
     font-family: var(--font-game);
@@ -794,8 +804,8 @@ body {
 }
 
     .option-btn:hover:not(:disabled) {
-        border-color: var(--color-cyan);
-        box-shadow: var(--glow-cyan);
+        border-color: var(--dynamic-theme-color);
+        box-shadow: 0 0 14px var(--dynamic-theme-glow);
         transform: translateX(4px);
     }
 
@@ -804,9 +814,9 @@ body {
     }
 
     .option-btn.selected {
-        background: var(--color-cyan);
-        border-color: var(--color-cyan);
-        box-shadow: var(--glow-cyan);
+        background: var(--dynamic-theme-color);
+        border-color: var(--dynamic-theme-color);
+        box-shadow: 0 0 14px var(--dynamic-theme-glow);
         color: var(--color-badge-text);
     }
 
@@ -895,12 +905,13 @@ body {
     background: var(--color-panel);
     padding: 28px 36px;
     border-radius: var(--panel-radius);
-    box-shadow: var(--shadow-cyan);
-    border: 3px solid var(--color-cyan);
+    box-shadow: var(--dynamic-theme-shadow);
+    border: 3px solid var(--dynamic-theme-color);
     z-index: 10;
     font-family: var(--font-game);
     color: var(--color-text-soft);
     font-weight: 800;
+    text-align: center;
 }
 
 .waiting-content {
@@ -1512,4 +1523,105 @@ body {
     .score-total {
         font-size: 1.3rem;
     }
+}
+
+/* ========================================
+   UNDO (CEVABI GERİ AL) BUTONU
+======================================== */
+.undo-btn {
+    display: block;
+    margin: 12px auto 0;
+    padding: 8px 22px;
+    border: 2px solid var(--dynamic-theme-color);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--dynamic-theme-color);
+    font-family: var(--font-game);
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.8px;
+}
+
+.undo-btn:hover {
+    background: var(--dynamic-theme-color);
+    color: #111215;
+    box-shadow: 0 0 14px var(--dynamic-theme-glow);
+}
+
+/* ========================================
+   YORUM MODU (TİP 2) GERİ SAYIM SAYACI
+======================================== */
+.comment-timer-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
+
+.comment-timer-text {
+    font-family: var(--font-game);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--dynamic-theme-color);
+    min-width: 36px;
+    text-align: center;
+}
+
+.comment-timer-label {
+    font-family: var(--font-game);
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--color-text-muted);
+}
+
+.comment-timer-bar {
+    height: 7px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+#commentTimerFill {
+    height: 100%;
+    width: 100%;
+    background: var(--dynamic-theme-color);
+    border-radius: 4px;
+    transition: width 1s linear;
+    box-shadow: 0 0 8px var(--dynamic-theme-glow);
+}
+
+/* ========================================
+   RECONNECT OVERLAY
+======================================== */
+#reconnectOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    gap: 16px;
+}
+
+.reconnect-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(0, 245, 255, 0.2);
+    border-top: 4px solid var(--color-cyan);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.reconnect-text {
+    font-family: var(--font-game);
+    color: var(--color-text);
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
 }

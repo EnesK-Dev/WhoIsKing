@@ -45,6 +45,8 @@ const gameElements = {
 let isHost = false;
 let myPlayerName = '';
 let currentKingName = '';
+let currentRoundQuestionType = 0;
+let commentTimerInterval = null;
 const CROWN_IMG = '/images/crown.png';
 
 function getMyPlayerName() {
@@ -168,6 +170,80 @@ function applyGameTheme(isKing) {
     if (questionCard) questionCard.classList.toggle('theme-king', !!isKing);
 }
 
+function applyDynamicTheme(typeVal) {
+    const themes = {
+        0: { color: '#00F5FF', glow: 'rgba(0,245,255,0.4)', shadow: '5px 10px 20px rgba(0,245,255,0.35)' },
+        1: { color: '#BF00FF', glow: 'rgba(191,0,255,0.4)', shadow: '5px 10px 20px rgba(191,0,255,0.35)' },
+        2: { color: '#FF6600', glow: 'rgba(255,102,0,0.4)', shadow: '5px 10px 20px rgba(255,102,0,0.35)' }
+    };
+    const t = themes[typeVal] ?? themes[0];
+    document.documentElement.style.setProperty('--dynamic-theme-color', t.color);
+    document.documentElement.style.setProperty('--dynamic-theme-glow', t.glow);
+    document.documentElement.style.setProperty('--dynamic-theme-shadow', t.shadow);
+}
+
+function startCommentTimer(roomCode, playerName) {
+    stopCommentTimer();
+    let remaining = 60;
+    const timerBox = document.getElementById('commentTimerBox');
+    const timerBar = document.getElementById('commentTimerBar');
+    const timerText = document.getElementById('commentTimerText');
+    const timerFill = document.getElementById('commentTimerFill');
+    if (timerBox) timerBox.style.display = 'flex';
+    if (timerBar) timerBar.style.display = 'block';
+    if (timerText) timerText.textContent = remaining;
+    if (timerFill) timerFill.style.width = '100%';
+
+    commentTimerInterval = setInterval(() => {
+        remaining--;
+        if (timerText) timerText.textContent = remaining;
+        if (timerFill) timerFill.style.width = (remaining / 60 * 100) + '%';
+        if (remaining <= 0) {
+            stopCommentTimer();
+            const input = document.getElementById('openEndedAnswer');
+            const answer = (input?.value || '').trim() || 'Zaman Doldu';
+            connection.invoke("SubmitAnswer", roomCode, playerName, answer)
+                .then(() => {
+                    if (document.getElementById('textInputContainer'))
+                        document.getElementById('textInputContainer').style.display = 'none';
+                    if (gameElements.waitingState) {
+                        gameElements.waitingState.innerHTML = "<p>Süre doldu! Cevap otomatik gönderildi.</p>";
+                        gameElements.waitingState.style.display = 'block';
+                    }
+                })
+                .catch(err => console.error("Timer auto-submit hatası:", err));
+        }
+    }, 1000);
+}
+
+function stopCommentTimer() {
+    if (commentTimerInterval !== null) {
+        clearInterval(commentTimerInterval);
+        commentTimerInterval = null;
+    }
+    const timerBox = document.getElementById('commentTimerBox');
+    const timerBar = document.getElementById('commentTimerBar');
+    if (timerBox) timerBox.style.display = 'none';
+    if (timerBar) timerBar.style.display = 'none';
+}
+
+function showReconnectOverlay(show) {
+    const overlay = document.getElementById('reconnectOverlay');
+    if (overlay) overlay.style.display = show ? 'flex' : 'none';
+}
+
+function saveSession(roomCode, playerName, host) {
+    sessionStorage.setItem('askaway_roomCode', roomCode);
+    sessionStorage.setItem('askaway_playerName', playerName);
+    sessionStorage.setItem('askaway_isHost', host ? 'true' : 'false');
+}
+
+function clearSession() {
+    sessionStorage.removeItem('askaway_roomCode');
+    sessionStorage.removeItem('askaway_playerName');
+    sessionStorage.removeItem('askaway_isHost');
+}
+
 function showLoadingOverlay(show) {
     const loadingEl = screens.loading;
     if (!loadingEl) return;
@@ -245,7 +321,28 @@ function renderKingBox(kingName, isKing) {
 // --- 2. SIGNALR BAĞLANTISI ---
 const connection = new signalR.HubConnectionBuilder()
     .withUrl("/gameHub")
+    .withAutomaticReconnect([0, 2000, 5000, 10000])
     .build();
+
+connection.onreconnecting(() => {
+    console.warn("SignalR bağlantısı koptu, yeniden bağlanılıyor...");
+    showReconnectOverlay(true);
+});
+
+connection.onreconnected(() => {
+    console.log("SignalR yeniden bağlandı.");
+    showReconnectOverlay(false);
+    const rc = sessionStorage.getItem('askaway_roomCode');
+    const pn = sessionStorage.getItem('askaway_playerName');
+    if (rc && pn) {
+        connection.invoke("RejoinRoom", rc, pn).catch(err => console.error("RejoinRoom hatası:", err));
+    }
+});
+
+connection.onclose((err) => {
+    console.error("SignalR bağlantısı kalıcı olarak kapandı:", err);
+    showReconnectOverlay(false);
+});
 
 connection.start().then(() => {
     console.log("SignalR Bağlantısı Başarılı!");
@@ -258,6 +355,7 @@ connection.on("RoomCreated", (roomCode) => {
     if (buttons.startGame) buttons.startGame.style.display = 'flex';
     if (lobbyElements.playersList) lobbyElements.playersList.innerHTML = '';
     addPlayerToList(inputs.playerName.value.trim(), true);
+    saveSession(roomCode, myPlayerName, true);
     showScreen('lobby');
 });
 
@@ -265,6 +363,107 @@ connection.on("UpdatePlayerList", (players) => {
     if (lobbyElements.playersList) {
         lobbyElements.playersList.innerHTML = '';
         players.forEach(p => addPlayerToList(p.name, p.isHost));
+    }
+});
+
+connection.on("RejoinedLobby", (data) => {
+    if (lobbyElements.displayRoomCode) lobbyElements.displayRoomCode.textContent = data.roomCode;
+    if (lobbyElements.playersList) {
+        lobbyElements.playersList.innerHTML = '';
+        (data.players || []).forEach(p => addPlayerToList(p.name, p.isHost));
+    }
+    const storedHost = sessionStorage.getItem('askaway_isHost') === 'true';
+    isHost = storedHost;
+    if (buttons.startGame) buttons.startGame.style.display = storedHost ? 'flex' : 'none';
+    showScreen('lobby');
+});
+
+connection.on("RejoinedGame", (data) => {
+    currentRoundQuestionType = getQuestionTypeValue(data);
+    applyDynamicTheme(currentRoundQuestionType);
+    const kingName = String(data.kingName ?? '').trim();
+    const myName = getMyPlayerName();
+    const isKing = data.isYouKing ?? namesMatch(kingName, myName);
+    currentKingName = kingName;
+
+    if (gameElements.questionText) gameElements.questionText.textContent = data.questionText ?? '';
+    applyGameTheme(isKing);
+    renderKingBox(kingName, isKing);
+
+    const optionsContainer = document.querySelector('.options-container');
+    const textInputContainer = document.getElementById('textInputContainer');
+    const isTextQuestion = currentRoundQuestionType === 2;
+
+    if (isTextQuestion) {
+        if (optionsContainer) optionsContainer.style.display = 'none';
+        if (!data.alreadyAnswered && !isKing) {
+            if (textInputContainer) textInputContainer.style.display = 'block';
+            const textInput = document.getElementById('openEndedAnswer');
+            if (textInput) textInput.value = '';
+            if (gameElements.waitingState) gameElements.waitingState.style.display = 'none';
+            startCommentTimer(getActiveRoomCode(), myName);
+        } else if (isKing) {
+            if (textInputContainer) textInputContainer.style.display = 'none';
+            if (gameElements.waitingState) {
+                gameElements.waitingState.innerHTML = "<p>Oyuncuların komik cevaplar yazması bekleniyor...</p>";
+                gameElements.waitingState.style.display = 'block';
+            }
+        } else {
+            if (textInputContainer) textInputContainer.style.display = 'none';
+            if (gameElements.waitingState) {
+                gameElements.waitingState.innerHTML = `<p>Cevap gönderildi! <span id="answeredCount">${data.answeredCount ?? 0}</span>/<span id="totalPlayers">${data.totalPlayers ?? 0}</span></p><button type="button" id="undoAnswerBtn" class="undo-btn" style="display:none;">Cevabımı Geri Al / Değiştir</button>`;
+                gameElements.waitingState.style.display = 'block';
+            }
+        }
+    } else {
+        if (optionsContainer) optionsContainer.style.display = 'flex';
+        if (textInputContainer) textInputContainer.style.display = 'none';
+        gameElements.optionButtons.forEach((btn, index) => {
+            if (data.options && index < data.options.length) {
+                const optionText = btn.querySelector('.option-text');
+                if (optionText) optionText.textContent = data.options[index];
+                btn.classList.remove('selected');
+                btn.disabled = false;
+                btn.style.display = 'block';
+            } else {
+                btn.style.display = 'none';
+            }
+        });
+        if (data.alreadyAnswered) {
+            gameElements.optionButtons.forEach(b => b.disabled = true);
+            if (gameElements.waitingState) {
+                gameElements.waitingState.innerHTML = `<p>Cevap gönderildi! <span id="answeredCount">${data.answeredCount ?? 0}</span>/<span id="totalPlayers">${data.totalPlayers ?? 0}</span></p><button type="button" id="undoAnswerBtn" class="undo-btn">Cevabımı Geri Al / Değiştir</button>`;
+                gameElements.waitingState.style.display = 'block';
+                attachUndoListener();
+            }
+        } else {
+            if (gameElements.waitingState) gameElements.waitingState.style.display = 'none';
+        }
+    }
+
+    showScreen('game');
+    applyPlayerBackground(isKing);
+});
+
+connection.on("AnswerUndone", () => {
+    stopCommentTimer();
+    const undoBtn = document.getElementById('undoAnswerBtn');
+    if (undoBtn) undoBtn.style.display = 'none';
+    if (gameElements.waitingState) gameElements.waitingState.style.display = 'none';
+
+    if (currentRoundQuestionType === 2) {
+        const textInputContainer = document.getElementById('textInputContainer');
+        if (textInputContainer) textInputContainer.style.display = 'block';
+        const textInput = document.getElementById('openEndedAnswer');
+        if (textInput) textInput.value = '';
+        const roomCode = getActiveRoomCode();
+        const playerName = getMyPlayerName();
+        startCommentTimer(roomCode, playerName);
+    } else {
+        gameElements.optionButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.classList.remove('selected');
+        });
     }
 });
 
@@ -283,6 +482,8 @@ connection.on("Error", (message) => {
 connection.on("GameStarted", (data) => {
     console.log("GameStarted:", data);
 
+    stopCommentTimer();
+
     const oldKingContainer = document.getElementById('kingSelectionContainer');
     if (oldKingContainer) {
         oldKingContainer.remove();
@@ -295,6 +496,11 @@ connection.on("GameStarted", (data) => {
     const isTextQuestion = questionType === 2;
 
     currentKingName = kingName;
+    currentRoundQuestionType = questionType;
+    applyDynamicTheme(questionType);
+
+    const undoBtn = document.getElementById('undoAnswerBtn');
+    if (undoBtn) undoBtn.style.display = 'none';
 
     if (gameElements.questionText) {
         gameElements.questionText.textContent = data.questionText ?? data.QuestionText ?? '';
@@ -324,6 +530,7 @@ connection.on("GameStarted", (data) => {
             const textInput = document.getElementById('openEndedAnswer');
             if (textInput) textInput.value = '';
             if (gameElements.waitingState) gameElements.waitingState.style.display = 'none';
+            startCommentTimer(getActiveRoomCode(), myName);
         }
     } else {
         if (optionsContainer) optionsContainer.style.display = 'flex';
@@ -360,6 +567,7 @@ if (submitOpenEndedBtn) {
         const answer = answerInput.value.trim();
 
         if (answer !== "") {
+            stopCommentTimer();
 
             // textContent ile gizli div'den yazıyı oku
             let exactRoomCode = document.getElementById('displayRoomCode').textContent.trim();
@@ -381,8 +589,9 @@ if (submitOpenEndedBtn) {
                 .then(() => {
                     document.getElementById('textInputContainer').style.display = 'none';
                     if (gameElements.waitingState) {
-                        gameElements.waitingState.innerHTML = "<p>Cevap Gönderildi! Diğerleri bekleniyor...</p>";
+                        gameElements.waitingState.innerHTML = "<p>Cevap Gönderildi! Diğerleri bekleniyor...</p><button type='button' id='undoAnswerBtn' class='undo-btn'>Cevabımı Geri Al / Değiştir</button>";
                         gameElements.waitingState.style.display = 'block';
+                        attachUndoListener();
                     }
                 })
                 .catch(err => {
@@ -397,10 +606,18 @@ if (submitOpenEndedBtn) {
 connection.on("UpdateAnswerCount", (answered, total) => {
     if (gameElements.answeredCount) gameElements.answeredCount.textContent = answered;
     if (gameElements.totalPlayers) gameElements.totalPlayers.textContent = total;
+
+    const undoBtn = document.getElementById('undoAnswerBtn');
+    if (undoBtn) {
+        const allAnswered = answered >= total;
+        undoBtn.style.display = allAnswered ? 'none' : (gameElements.waitingState?.style.display === 'block' ? 'block' : 'none');
+    }
 });
 
 connection.on("ShowResults", (data) => {
     console.log("Sonuçlar Verisi:", data);
+    stopCommentTimer();
+    applyDynamicTheme(currentRoundQuestionType);
 
     const resultsTitle = document.getElementById('resultsTitle');
     const kingChoice = document.getElementById('kingChoice');
@@ -494,6 +711,7 @@ if (buttons.confirmJoin) {
         myPlayerName = playerName;
         sessionStorage.setItem('myPlayerName', playerName);
         isHost = false;
+        saveSession(roomCode, playerName, false);
         if (buttons.startGame) buttons.startGame.style.display = 'none';
         if (lobbyElements.displayRoomCode) lobbyElements.displayRoomCode.textContent = roomCode;
         showScreen('lobby');
@@ -513,7 +731,11 @@ function resetToWelcome() {
     isHost = false;
     myPlayerName = '';
     currentKingName = '';
+    currentRoundQuestionType = 0;
+    stopCommentTimer();
+    clearSession();
     sessionStorage.removeItem('myPlayerName');
+    applyDynamicTheme(0);
 
     if (lobbyElements.displayRoomCode) {
         lobbyElements.displayRoomCode.textContent = '----';
@@ -588,7 +810,11 @@ gameElements.optionButtons.forEach(btn => {
     btn.addEventListener('click', () => {
         gameElements.optionButtons.forEach(b => b.disabled = true);
         btn.classList.add('selected');
-        if (gameElements.waitingState) gameElements.waitingState.style.display = 'block';
+        if (gameElements.waitingState) {
+            gameElements.waitingState.innerHTML = `<p>Cevap gönderildi! <span id="answeredCount">0</span>/<span id="totalPlayers">0</span></p><button type="button" id="undoAnswerBtn" class="undo-btn">Cevabımı Geri Al / Değiştir</button>`;
+            gameElements.waitingState.style.display = 'block';
+            attachUndoListener();
+        }
 
         const selectedOption = btn.dataset.option;
         const roomCode = getActiveRoomCode();
@@ -597,6 +823,16 @@ gameElements.optionButtons.forEach(btn => {
         connection.invoke("SubmitAnswer", roomCode, playerName, selectedOption).catch(err => console.error(err));
     });
 });
+
+function attachUndoListener() {
+    const undoBtn = document.getElementById('undoAnswerBtn');
+    if (!undoBtn) return;
+    undoBtn.onclick = () => {
+        const roomCode = getActiveRoomCode();
+        const playerName = getMyPlayerName();
+        connection.invoke("UndoAnswer", roomCode, playerName).catch(err => console.error("UndoAnswer hatası:", err));
+    };
+}
 
 // --- 6. YARDIMCI FONKSİYONLAR ---
 
@@ -639,6 +875,7 @@ if (inputs.roomCode) {
 // ==========================================================
 connection.on("ShowKingSelection", (anonymousAnswers) => {
     console.log("Kral Seçim Ekranı Geldi! Gelen Cevaplar:", anonymousAnswers);
+    stopCommentTimer();
 
     if (gameElements.waitingState) gameElements.waitingState.style.display = 'none';
     const textInputContainer = document.getElementById('textInputContainer');

@@ -103,12 +103,20 @@
                         <button type="button" class="option-btn" data-option="E"><span class="option-text"></span></button>
                     </div>
                     <div id="textInputContainer" class="open-ended-block" style="display: none;">
-                        <input type="text" id="openEndedAnswer" class="game-input" placeholder="Cevabını buraya yaz…" maxlength="60">
+                        <div id="commentTimerBox" class="comment-timer-box" style="display: none;">
+                            <span id="commentTimerText" class="comment-timer-text">60</span>
+                            <span class="comment-timer-label">sn</span>
+                        </div>
+                        <div id="commentTimerBar" class="comment-timer-bar" style="display: none;">
+                            <div id="commentTimerFill"></div>
+                        </div>
+                        <input type="text" id="openEndedAnswer" class="game-input" placeholder="Cevabını buraya yaz…">
                         <button type="button" id="submitOpenEndedBtn" class="game-btn">Gönder</button>
                     </div>
                 </div>
                 <div id="waitingForAnswers" class="waiting-state" style="display: none;">
                     <p>Cevap gönderildi! <span id="answeredCount">0</span>/<span id="totalPlayers">0</span></p>
+                    <button type="button" id="undoAnswerBtn" class="undo-btn" style="display: none;">Cevabımı Geri Al / Değiştir</button>
                 </div>
             </div>
         </div>
@@ -150,6 +158,10 @@
             </div>
         </div>
 
+    </div>
+    <div id="reconnectOverlay" style="display: none;">
+        <div class="reconnect-spinner"></div>
+        <p class="reconnect-text">Bağlantı yeniden kuruluyor…</p>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="~/js/lobby.js"></script>

@@ -215,6 +215,99 @@ namespace AskAway.Hubs
                 await Clients.Client(p.ConnectionId).SendAsync("GameStarted", gameData);
             }
         }
+        // 4b. CEVABI GERİ ALMA METODU
+        public async Task UndoAnswer(string roomCode, string playerName)
+        {
+            var code = NormalizeRoomCode(roomCode);
+            var room = await _context.Rooms
+                .Include(r => r.Players)
+                .FirstOrDefaultAsync(r => r.RoomCode == code);
+            if (room == null || room.CurrentState != "Playing") return;
+
+            var player = room.Players.FirstOrDefault(p =>
+                string.Equals(p.Name, playerName, StringComparison.OrdinalIgnoreCase));
+            if (player == null || string.IsNullOrEmpty(player.CurrentAnswer)) return;
+
+            player.CurrentAnswer = null;
+            player.AnswerOrder = 0;
+            await _context.SaveChangesAsync();
+
+            int answeredCount = room.Players.Count(p => !string.IsNullOrEmpty(p.CurrentAnswer));
+            int totalPlayers = room.Players.Count;
+
+            await Clients.Group(code).SendAsync("UpdateAnswerCount", answeredCount, totalPlayers);
+            await Clients.Caller.SendAsync("AnswerUndone");
+        }
+
+        // 4c. ODAYA YENİDEN KATILMA METODU (Yenileme / Alt-Tab sonrası)
+        public async Task RejoinRoom(string roomCode, string playerName)
+        {
+            var code = NormalizeRoomCode(roomCode);
+            var room = await _context.Rooms
+                .Include(r => r.Players)
+                .FirstOrDefaultAsync(r => r.RoomCode == code);
+            if (room == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Oda bulunamadı.");
+                return;
+            }
+
+            var player = room.Players.FirstOrDefault(p =>
+                string.Equals(p.Name, playerName, StringComparison.OrdinalIgnoreCase));
+            if (player == null)
+            {
+                await Clients.Caller.SendAsync("Error", "Oyuncu bu odada bulunamadı.");
+                return;
+            }
+
+            player.ConnectionId = Context.ConnectionId;
+            await _context.SaveChangesAsync();
+            await Groups.AddToGroupAsync(Context.ConnectionId, code);
+
+            var playerList = room.Players
+                .Select(p => new { name = p.Name, isHost = p.IsHost })
+                .ToList();
+
+            if (room.CurrentState == "Lobby")
+            {
+                await Clients.Caller.SendAsync("RejoinedLobby", new { players = playerList, roomCode = code });
+            }
+            else if (room.CurrentState == "Playing" && room.CurrentQuestionId.HasValue)
+            {
+                var question = await _context.Questions.FindAsync(room.CurrentQuestionId.Value);
+                var king = room.Players.FirstOrDefault(p => p.Id == room.KingPlayerId);
+                bool isYouKing = string.Equals(king?.Name, playerName, StringComparison.OrdinalIgnoreCase);
+
+                List<string> options;
+                if (question?.QuestionType == QuestionType.PlayerSelection)
+                {
+                    options = room.Players
+                        .Where(p => p.Id != king?.Id)
+                        .Select(p => p.Name)
+                        .ToList();
+                }
+                else
+                {
+                    options = QuestionOptions.ParseStoredOptions(question?.Options).ToList();
+                }
+
+                int answeredCount = room.Players.Count(p => !string.IsNullOrEmpty(p.CurrentAnswer));
+                bool alreadyAnswered = !string.IsNullOrEmpty(player.CurrentAnswer);
+
+                await Clients.Caller.SendAsync("RejoinedGame", new
+                {
+                    kingName = king?.Name,
+                    isYouKing,
+                    questionText = question?.Text,
+                    options,
+                    questionType = (int)(question?.QuestionType ?? QuestionType.MultipleChoice),
+                    answeredCount,
+                    totalPlayers = room.Players.Count,
+                    alreadyAnswered
+                });
+            }
+        }
+
         // 4. CEVAP GÖNDERME METODU
         public async Task SubmitAnswer(string roomCode, string playerName, string selectedOption)
         {
